@@ -1,1 +1,102 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>タグ編集</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: sans-serif; padding: 1em; background: #fefefe; }
+    h1 { font-size: 1.2em; margin-bottom: 1em; }
+    input[type="text"] {
+      width: 70%; padding: 5px; margin-right: 5px;
+    }
+    button { padding: 5px 10px; margin: 5px 2px; }
+    ul { list-style: none; padding: 0; }
+    li { background: #f4f4f4; margin: 5px 0; padding: 8px; display: flex; justify-content: space-between; align-items: center; }
+    .actions button { font-size: 0.8em; }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em; }
+    a { text-decoration: none; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <h1>タグ編集</h1>
+    <a href="index.html">← 戻る</a>
+  </div>
 
+  <div>
+    <input type="text" id="newTag" placeholder="新しいタグを入力">
+    <button onclick="addTag()">追加</button>
+  </div>
+
+  <ul id="tagList"></ul>
+
+  <script>
+    function getTags() {
+      return JSON.parse(localStorage.getItem("activityTags") || "[]");
+    }
+
+    function saveTags(tags) {
+      localStorage.setItem("activityTags", JSON.stringify(tags));
+    }
+
+    function renderTags() {
+      const tagList = document.getElementById("tagList");
+      const tags = getTags();
+      tagList.innerHTML = "";
+      tags.forEach((tag, i) => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <span>${tag}</span>
+          <div class="actions">
+            <button onclick="moveUp(${i})">↑</button>
+            <button onclick="moveDown(${i})">↓</button>
+            <button onclick="deleteTag(${i})">削除</button>
+          </div>
+        `;
+        tagList.appendChild(li);
+      });
+    }
+
+    function addTag() {
+      const input = document.getElementById("newTag");
+      const newTag = input.value.trim();
+      if (!newTag) return;
+      const tags = getTags();
+      if (tags.includes(newTag)) {
+        alert("既に存在するタグです");
+        return;
+      }
+      tags.push(newTag);
+      saveTags(tags);
+      input.value = "";
+      renderTags();
+    }
+
+    function deleteTag(index) {
+      const tags = getTags();
+      tags.splice(index, 1);
+      saveTags(tags);
+      renderTags();
+    }
+
+    function moveUp(index) {
+      if (index === 0) return;
+      const tags = getTags();
+      [tags[index - 1], tags[index]] = [tags[index], tags[index - 1]];
+      saveTags(tags);
+      renderTags();
+    }
+
+    function moveDown(index) {
+      const tags = getTags();
+      if (index >= tags.length - 1) return;
+      [tags[index + 1], tags[index]] = [tags[index], tags[index + 1]];
+      saveTags(tags);
+      renderTags();
+    }
+
+    renderTags();
+  </script>
+</body>
+</html>
