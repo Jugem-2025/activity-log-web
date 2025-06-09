@@ -1,10 +1,86 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>活動記録</title>
+  <title>活動記録（1時間分）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
+    h1 { font-size: 1.4em; }
+    label { display: block; margin-top: 15px; font-weight: bold; }
+    select, input[type=number], textarea {
+      width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box;
+    }
+    button { margin-top: 20px; padding: 10px 15px; }
+    .saved { color: green; margin-top: 10px; font-size: 0.9em; }
+  </style>
 </head>
 <body>
-  <h1>こんにちは！これはSafariで動く活動記録アプリのテストです。</h1>
+  <h1>活動記録（1時間分）</h1>
+
+  <label for="activity">やったこと</label>
+  <select id="activity">
+    <option value="">選択してください</option>
+    <option value="起床">起床</option>
+    <option value="朝食">朝食</option>
+    <option value="講義">講義</option>
+    <option value="個人課題">個人課題</option>
+    <option value="昼食">昼食</option>
+    <option value="休憩">休憩</option>
+    <option value="外出">外出</option>
+    <option value="夕食">夕食</option>
+    <option value="就寝">就寝</option>
+  </select>
+
+  <label for="mood">気分（0～100）</label>
+  <select id="mood">
+    <option value="">選択してください</option>
+    <!-- 0〜100を5刻みで -->
+  </select>
+
+  <label for="fatigue">疲労度（0～100）※左が疲れてる</label>
+  <select id="fatigue">
+    <option value="">選択してください</option>
+    <!-- 100〜0を5刻みで -->
+  </select>
+
+  <button onclick="saveData()">保存する</button>
+  <div id="savedMessage" class="saved" style="display:none;">保存しました！</div>
+
+  <script>
+    const activityEl = document.getElementById('activity');
+    const moodEl = document.getElementById('mood');
+    const fatigueEl = document.getElementById('fatigue');
+
+    // プルダウン選択肢生成
+    for (let i = 0; i <= 100; i += 5) {
+      moodEl.innerHTML += `<option value="${i}">${i}</option>`;
+      fatigueEl.innerHTML += `<option value="${100 - i}">${100 - i}</option>`;
+    }
+
+    function saveData() {
+      const data = {
+        activity: activityEl.value,
+        mood: parseInt(moodEl.value),
+        fatigue: parseInt(fatigueEl.value)
+      };
+      localStorage.setItem('activityLog_1h', JSON.stringify(data));
+      document.getElementById('savedMessage').style.display = 'block';
+      setTimeout(() => {
+        document.getElementById('savedMessage').style.display = 'none';
+      }, 1500);
+    }
+
+    function loadData() {
+      const data = JSON.parse(localStorage.getItem('activityLog_1h'));
+      if (!data) return;
+      activityEl.value = data.activity || "";
+      moodEl.value = data.mood || "";
+      fatigueEl.value = data.fatigue || "";
+    }
+
+    // 初回読み込み時に復元
+    loadData();
+  </script>
 </body>
 </html>
