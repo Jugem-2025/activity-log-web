@@ -4,16 +4,19 @@
   <meta charset="UTF-8">
   <title>週間表示</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 1em; background: #fdfdfd; }
     h1 { font-size: 1.2em; margin-bottom: 0.5em; }
-    table { width: 100%; border-collapse: collapse; margin-top: 1em; }
-    th, td { border: 1px solid #ccc; padding: 5px; font-size: 0.85em; vertical-align: top; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1em; table-layout: fixed; }
+    th, td { border: 1px solid #ccc; padding: 5px; font-size: 0.85em; vertical-align: top; word-wrap: break-word; }
     th { background: #eee; }
     .hour-col { width: 50px; text-align: center; }
     .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em; }
     input[type="date"] { padding: 5px; }
     a { text-decoration: none; font-size: 0.9em; }
+    #captureArea { background: #fff; padding: 10px; }
+    #saveBtn { margin-top: 10px; padding: 8px 12px; }
   </style>
 </head>
 <body>
@@ -24,8 +27,11 @@
 
   <label for="baseDate">表示基準日（任意の日付）</label>
   <input type="date" id="baseDate">
+  <button id="saveBtn">画像で保存</button>
 
-  <div id="weeklyTable"></div>
+  <div id="captureArea">
+    <div id="weeklyTable"></div>
+  </div>
 
   <script>
     const HOURS = Array.from({ length: 24 }, (_, i) => (i + 4) % 24);
@@ -37,13 +43,13 @@
     baseDateInput.addEventListener("change", renderTable);
 
     function getKey(dateStr) {
-      return "activityLog_" + dateStr;
+      return "log_" + dateStr;
     }
 
     function getMonday(baseDate) {
       const date = new Date(baseDate);
       const day = date.getDay();
-      const diff = (day + 6) % 7; // 日曜:6 → -6, 月曜:0
+      const diff = (day + 6) % 7;
       date.setDate(date.getDate() - diff);
       return date;
     }
@@ -57,20 +63,20 @@
         return d;
       });
 
-      const headers = dates.map(d => {
-        const label = `${d.getMonth() + 1}/${d.getDate()}(${DAYS_JA[d.getDay()]})`;
-        return `<th>${label}</th>`;
-      });
+      const headers = dates.map(d =>
+        `<th>${d.getMonth() + 1}/${d.getDate()}(${DAYS_JA[d.getDay()]})</th>`
+      );
 
       const rows = HOURS.map(hour => {
         const hourLabel = `${hour.toString().padStart(2, '0')}:00`;
         const cells = dates.map(d => {
-          const key = getKey(d.toISOString().split("T")[0]);
-          const entries = JSON.parse(localStorage.getItem(key)) || [];
-          const entry = entries.find(e => e.hour === hour);
+          const dateStr = d.toISOString().split("T")[0];
+          const key = getKey(dateStr + `_h${hour}`);
+          const entry = JSON.parse(localStorage.getItem(key)) || null;
           if (!entry) return `<td></td>`;
           const act = (entry.activity || []).join("・");
-          return `<td>${act}<br><small>気:${entry.mood} 疲:${entry.fatigue}</small></td>`;
+          const free = entry.freeText ? `＋${entry.freeText}` : "";
+          return `<td>${act}${free}<br><small>気:${entry.mood} 疲:${entry.fatigue}</small></td>`;
         });
         return `<tr><td class="hour-col">${hourLabel}</td>${cells.join("")}</tr>`;
       });
@@ -85,6 +91,22 @@
 
     // 初期表示
     renderTable();
+
+    // 保存ボタン処理
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      const captureEl = document.getElementById("captureArea");
+      html2canvas(captureEl, {
+        scale: 2,
+        width: 1123,
+        height: 794,
+        useCORS: true
+      }).then(canvas => {
+        const link = document.createElement("a");
+        link.download = "weekly_log.png";
+        link.href = canvas.toDataURL();
+        link.click();
+      });
+    });
   </script>
 </body>
 </html>
