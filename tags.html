@@ -32,19 +32,30 @@
   <ul id="tagList"></ul>
 
   <script>
-    function getTags() {
+    const defaultTags = ["起床", "朝食", "講義", "個人課題", "昼食", "休憩", "外出", "夕食", "就寝", "帰宅", "睡眠"];
+
+    function getUserTags() {
       return JSON.parse(localStorage.getItem("activityTags") || "[]");
     }
 
-    function saveTags(tags) {
+    function saveUserTags(tags) {
       localStorage.setItem("activityTags", JSON.stringify(tags));
     }
 
     function renderTags() {
       const tagList = document.getElementById("tagList");
-      const tags = getTags();
+      const userTags = getUserTags();
       tagList.innerHTML = "";
-      tags.forEach((tag, i) => {
+
+      // 固定タグ（削除不可）
+      defaultTags.forEach(tag => {
+        const li = document.createElement("li");
+        li.innerHTML = `<span>${tag}</span><span style="font-size: 0.8em; color: gray;">（固定）</span>`;
+        tagList.appendChild(li);
+      });
+
+      // ユーザー追加タグ
+      userTags.forEach((tag, i) => {
         const li = document.createElement("li");
         li.innerHTML = `
           <span>${tag}</span>
@@ -62,37 +73,38 @@
       const input = document.getElementById("newTag");
       const newTag = input.value.trim();
       if (!newTag) return;
-      const tags = getTags();
-      if (tags.includes(newTag)) {
+      const userTags = getUserTags();
+      const allTags = [...defaultTags, ...userTags];
+      if (allTags.includes(newTag)) {
         alert("既に存在するタグです");
         return;
       }
-      tags.push(newTag);
-      saveTags(tags);
+      userTags.push(newTag);
+      saveUserTags(userTags);
       input.value = "";
       renderTags();
     }
 
     function deleteTag(index) {
-      const tags = getTags();
-      tags.splice(index, 1);
-      saveTags(tags);
+      const userTags = getUserTags();
+      userTags.splice(index, 1);
+      saveUserTags(userTags);
       renderTags();
     }
 
     function moveUp(index) {
+      const tags = getUserTags();
       if (index === 0) return;
-      const tags = getTags();
       [tags[index - 1], tags[index]] = [tags[index], tags[index - 1]];
-      saveTags(tags);
+      saveUserTags(tags);
       renderTags();
     }
 
     function moveDown(index) {
-      const tags = getTags();
+      const tags = getUserTags();
       if (index >= tags.length - 1) return;
       [tags[index + 1], tags[index]] = [tags[index], tags[index + 1]];
-      saveTags(tags);
+      saveUserTags(tags);
       renderTags();
     }
 
