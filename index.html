@@ -5,153 +5,159 @@
   <title>活動記録</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { font-family: sans-serif; margin: 0; padding: 1em; background: #f4f4f4; }
-    header { display: flex; justify-content: space-between; align-items: center; }
-    h1 { font-size: 1.4em; margin: 0; }
-    .icon-group a {
-      margin-left: 10px;
-      text-decoration: none;
-      font-size: 1.4em;
+    :root {
+      color-scheme: light dark;
     }
-    .entry { background: #fff; padding: 10px; margin: 10px 0; border-radius: 5px; position: relative; }
-    label { display: block; font-weight: bold; margin-top: 10px; }
-    .checkbox-group label { font-weight: normal; display: inline-block; margin-right: 10px; }
-    select, input[type="date"], textarea, input[type="text"] {
-      width: 100%; padding: 5px; margin-top: 5px; box-sizing: border-box;
+    body {
+      font-family: sans-serif;
+      margin: 0; padding: 0;
+      background-color: #fff;
+      color: #000;
     }
-    button { padding: 6px 10px; margin-top: 10px; }
-    .save-btn { position: absolute; top: 10px; right: 10px; font-size: 0.8em; }
-    .date-label { font-size: 1.4em; margin-top: 10px; display: block; }
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #111;
+        color: #eee;
+      }
+      input, select, textarea, button {
+        background-color: #222;
+        color: #eee;
+        border: 1px solid #555;
+      }
+    }
+    header {
+      background-color: #4682b4;
+      color: white;
+      padding: 1em;
+      text-align: center;
+    }
+    main {
+      padding: 1em;
+    }
+    .hour-block {
+      border: 1px solid #ccc;
+      margin: 1em 0;
+      padding: 1em;
+      border-radius: 6px;
+    }
+    label { display: block; margin-top: 0.5em; }
+    .time-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .save-button {
+      margin-top: 0.5em;
+      padding: 4px 10px;
+    }
+    .top-right {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+    .icon-button {
+      margin-left: 8px;
+      font-size: 1.2em;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
   <header>
     <h1>活動記録</h1>
-    <div class="icon-group">
-      <a href="weekly.html" title="週間表示">☷</a>
-      <a href="tags.html" title="タグ編集">⚙️</a>
+    <div class="top-right">
+      <button class="icon-button" onclick="goToPage('weekly.html')">📅</button>
+      <button class="icon-button" onclick="goToPage('tags.html')">⚙️</button>
     </div>
   </header>
 
-  <label class="date-label" for="dateInput">日付を選択</label>
-  <input type="date" id="dateInput">
-
-  <div id="entriesContainer"></div>
-
-  <div class="entry">
-    <h3>嗜好品</h3>
-    <label><input type="checkbox" id="alcohol"> アルコール</label>
-    <label><input type="checkbox" id="caffeine"> カフェイン</label>
-    <input type="text" id="preferenceDetails" placeholder="詳細を入力（任意）">
-  </div>
-
-  <div class="entry">
-    <h3>補足・備考</h3>
-    <textarea id="additionalNotes" rows="3" placeholder="自由記入欄"></textarea>
-  </div>
+  <main>
+    <label for="recordDate">日付を選択:</label>
+    <input type="date" id="recordDate">
+    <div id="recordArea"></div>
+    <button onclick="saveAll()" class="save-button">保存する</button>
+  </main>
 
   <script>
-    const HOURS = Array.from({ length: 24 }, (_, i) => (i + 4) % 24);
-    const MOODS = Array.from({ length: 21 }, (_, i) => i * 5);
-    const dateInput = document.getElementById('dateInput');
-    const container = document.getElementById('entriesContainer');
+    const defaultTags = ["起床", "シャワー・風呂", "朝食", "昼食", "夕食", "外出", "移動", "個人課題", "講義", "帰宅", "家事", "休憩", "就寝", "薬", "睡眠"];
+    const hourList = Array.from({ length: 24 }, (_, i) => (i + 4) % 24);
 
-    dateInput.valueAsDate = new Date();
-    dateInput.addEventListener("change", loadEntries);
+    const dateInput = document.getElementById("recordDate");
+    const recordArea = document.getElementById("recordArea");
 
-    function getKey(date, hour) {
-      return `log_${date}_h${hour}`;
+    function goToPage(page) {
+      window.location.href = page;
     }
 
-    function getTagList() {
-      const defaultTags = ["起床", "朝食", "講義", "個人課題", "昼食", "休憩", "外出", "夕食", "就寝", "帰宅", "睡眠"];
-      const userTags = JSON.parse(localStorage.getItem("activityTags") || "[]");
-      const merged = [...new Set([...defaultTags, ...userTags])];
-      return merged;
+    function loadTags() {
+      const stored = localStorage.getItem("tags");
+      const custom = stored ? JSON.parse(stored) : [];
+      return Array.from(new Set([...defaultTags, ...custom]));
     }
 
-    function createEntryBlock(hour, saved, tags, date) {
-      const div = document.createElement("div");
-      div.className = "entry";
-      const hourLabel = `${hour.toString().padStart(2, '0')}:00〜`;
+    function render() {
+      const dateStr = dateInput.value;
+      recordArea.innerHTML = "";
+      const tags = loadTags();
 
-      const selectedTags = saved?.activity || [];
-      const freeText = saved?.freeText || "";
+      hourList.forEach(hour => {
+        const key = `log_${dateStr}_h${hour}`;
+        const data = JSON.parse(localStorage.getItem(key)) || { activity: [], mood: "", fatigue: "", freeText: "" };
 
-      div.innerHTML = `
-        <h3>${hourLabel}</h3>
-        <button class="save-btn" onclick="saveSingle(${hour})">保存する</button>
+        const div = document.createElement("div");
+        div.className = "hour-block";
 
-        <div class="checkbox-group" id="activity_${hour}">
-          ${tags.map(tag =>
-            `<label><input type="checkbox" value="${tag}" ${selectedTags.includes(tag) ? "checked" : ""}>${tag}</label>`
-          ).join('')}
-        </div>
-
-        <input type="text" id="freeText_${hour}" placeholder="自由記入（やったこと）" value="${freeText}">
-
-        <label>気分（0〜100）</label>
-        <select id="mood_${hour}">
-          ${MOODS.map(v => `<option value="${v}" ${saved?.mood === v ? "selected" : ""}>${v}</option>`).join('')}
-        </select>
-
-        <label>疲労度（0〜100）</label>
-        <select id="fatigue_${hour}">
-          ${MOODS.map(v => `<option value="${v}" ${saved?.fatigue === v ? "selected" : ""}>${v}</option>`).join('')}
-        </select>
-      `;
-      return div;
+        div.innerHTML = `
+          <div class="time-row">
+            <strong>${hour.toString().padStart(2, '0')}:00〜</strong>
+            <button onclick="saveHour(${hour})">保存する</button>
+          </div>
+          <label>やったこと:</label>
+          ${tags.map(tag => `
+            <label><input type="checkbox" value="${tag}" ${data.activity.includes(tag) ? "checked" : ""} onchange="onTagChange(this, ${hour})"> ${tag}</label>
+          `).join("")}
+          <label>自由記入:</label>
+          <input type="text" id="free_${hour}" value="${data.freeText || ""}">
+          <label>気分（0〜100）:</label>
+          <input type="number" id="mood_${hour}" min="0" max="100" step="5" value="${data.mood}">
+          <label>疲労度（0〜100）:</label>
+          <input type="number" id="fatigue_${hour}" min="0" max="100" step="5" value="${data.fatigue}">
+        `;
+        recordArea.appendChild(div);
+      });
     }
 
-    function saveSingle(hour) {
-      const date = dateInput.value;
-      const checkboxes = document.querySelectorAll(`#activity_${hour} input[type="checkbox"]`);
-      const selected = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
-      const mood = parseInt(document.getElementById(`mood_${hour}`).value);
-      const fatigue = parseInt(document.getElementById(`fatigue_${hour}`).value);
-      const freeText = document.getElementById(`freeText_${hour}`).value;
-
-      const entry = { hour, activity: selected, mood, fatigue, freeText };
-      localStorage.setItem(getKey(date, hour), JSON.stringify(entry));
-      alert(`${hour}:00 のデータを保存しました！`);
-    }
-
-    function loadEntries() {
-      container.innerHTML = '';
-      const date = dateInput.value;
-      const tags = getTagList();
-
-      for (let hour of HOURS) {
-        const saved = JSON.parse(localStorage.getItem(getKey(date, hour))) || {};
-        container.appendChild(createEntryBlock(hour, saved, tags, date));
+    function onTagChange(checkbox, hour) {
+      const isSleep = checkbox.value === "睡眠" && checkbox.checked;
+      if (isSleep) {
+        document.getElementById(`mood_${hour}`).value = "";
+        document.getElementById(`fatigue_${hour}`).value = "";
       }
-
-      const note = JSON.parse(localStorage.getItem(`note_${date}`)) || {};
-      document.getElementById("alcohol").checked = note.alcohol || false;
-      document.getElementById("caffeine").checked = note.caffeine || false;
-      document.getElementById("preferenceDetails").value = note.preferenceDetails || "";
-      document.getElementById("additionalNotes").value = note.additionalNotes || "";
-
-      // 自動保存
-      document.getElementById("preferenceDetails").onchange = saveNote;
-      document.getElementById("additionalNotes").onchange = saveNote;
-      document.getElementById("alcohol").onchange = saveNote;
-      document.getElementById("caffeine").onchange = saveNote;
     }
 
-    function saveNote() {
-      const date = dateInput.value;
-      const note = {
-        alcohol: document.getElementById("alcohol").checked,
-        caffeine: document.getElementById("caffeine").checked,
-        preferenceDetails: document.getElementById("preferenceDetails").value,
-        additionalNotes: document.getElementById("additionalNotes").value
-      };
-      localStorage.setItem(`note_${date}`, JSON.stringify(note));
+    function saveHour(hour) {
+      const dateStr = dateInput.value;
+      const key = `log_${dateStr}_h${hour}`;
+      const checkboxes = document.querySelectorAll(`.hour-block:nth-of-type(${hourList.indexOf(hour) + 1}) input[type="checkbox"]`);
+      const selected = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+      const freeText = document.getElementById(`free_${hour}`).value;
+      const mood = document.getElementById(`mood_${hour}`).value;
+      const fatigue = document.getElementById(`fatigue_${hour}`).value;
+      const data = { activity: selected, mood, fatigue, freeText };
+      localStorage.setItem(key, JSON.stringify(data));
     }
 
-    // 初回
-    loadEntries();
+    function saveAll() {
+      hourList.forEach(saveHour);
+      alert("保存しました！");
+    }
+
+    // 初期表示処理
+    dateInput.valueAsDate = new Date();
+    dateInput.addEventListener("change", render);
+    render();
   </script>
 </body>
 </html>
