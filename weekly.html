@@ -1,1 +1,90 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>週間表示</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: sans-serif; padding: 1em; background: #fdfdfd; }
+    h1 { font-size: 1.2em; margin-bottom: 0.5em; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+    th, td { border: 1px solid #ccc; padding: 5px; font-size: 0.85em; vertical-align: top; }
+    th { background: #eee; }
+    .hour-col { width: 50px; text-align: center; }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em; }
+    input[type="date"] { padding: 5px; }
+    a { text-decoration: none; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <h1>週間表示</h1>
+    <a href="index.html">← 戻る</a>
+  </div>
 
+  <label for="baseDate">表示基準日（任意の日付）</label>
+  <input type="date" id="baseDate">
+
+  <div id="weeklyTable"></div>
+
+  <script>
+    const HOURS = Array.from({ length: 24 }, (_, i) => (i + 4) % 24);
+    const DAYS_JA = ["日", "月", "火", "水", "木", "金", "土"];
+    const baseDateInput = document.getElementById("baseDate");
+    const weeklyTable = document.getElementById("weeklyTable");
+
+    baseDateInput.valueAsDate = new Date();
+    baseDateInput.addEventListener("change", renderTable);
+
+    function getKey(dateStr) {
+      return "activityLog_" + dateStr;
+    }
+
+    function getMonday(baseDate) {
+      const date = new Date(baseDate);
+      const day = date.getDay();
+      const diff = (day + 6) % 7; // 日曜:6 → -6, 月曜:0
+      date.setDate(date.getDate() - diff);
+      return date;
+    }
+
+    function renderTable() {
+      const base = new Date(baseDateInput.value);
+      const monday = getMonday(base);
+      const dates = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        return d;
+      });
+
+      const headers = dates.map(d => {
+        const label = `${d.getMonth() + 1}/${d.getDate()}(${DAYS_JA[d.getDay()]})`;
+        return `<th>${label}</th>`;
+      });
+
+      const rows = HOURS.map(hour => {
+        const hourLabel = `${hour.toString().padStart(2, '0')}:00`;
+        const cells = dates.map(d => {
+          const key = getKey(d.toISOString().split("T")[0]);
+          const entries = JSON.parse(localStorage.getItem(key)) || [];
+          const entry = entries.find(e => e.hour === hour);
+          if (!entry) return `<td></td>`;
+          const act = (entry.activity || []).join("・");
+          return `<td>${act}<br><small>気:${entry.mood} 疲:${entry.fatigue}</small></td>`;
+        });
+        return `<tr><td class="hour-col">${hourLabel}</td>${cells.join("")}</tr>`;
+      });
+
+      weeklyTable.innerHTML = `
+        <table>
+          <thead><tr><th>時間</th>${headers.join("")}</tr></thead>
+          <tbody>${rows.join("")}</tbody>
+        </table>
+      `;
+    }
+
+    // 初期表示
+    renderTable();
+  </script>
+</body>
+</html>
