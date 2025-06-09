@@ -2,85 +2,144 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>活動記録（1時間分）</title>
+  <title>活動記録アプリ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
+    body { font-family: sans-serif; padding: 20px; background: #f8f8f8; }
     h1 { font-size: 1.4em; }
-    label { display: block; margin-top: 15px; font-weight: bold; }
-    select, input[type=number], textarea {
-      width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box;
+    label { font-weight: bold; margin-top: 10px; display: block; }
+    select, input[type="text"], input[type="date"] {
+      padding: 5px; margin-top: 5px; width: 100%;
     }
+    .entry { background: #fff; padding: 10px; margin: 10px 0; border-radius: 5px; }
+    .entry h3 { margin: 0 0 5px; }
     button { margin-top: 20px; padding: 10px 15px; }
-    .saved { color: green; margin-top: 10px; font-size: 0.9em; }
+    table { border-collapse: collapse; width: 100%; margin-top: 30px; }
+    th, td { border: 1px solid #ccc; padding: 5px; text-align: left; font-size: 0.9em; }
+    th { background: #eee; }
+    .hour-col { width: 60px; text-align: center; }
   </style>
 </head>
 <body>
-  <h1>活動記録（1時間分）</h1>
+  <h1>活動記録アプリ（24時間）</h1>
 
-  <label for="activity">やったこと</label>
-  <select id="activity">
-    <option value="">選択してください</option>
-    <option value="起床">起床</option>
-    <option value="朝食">朝食</option>
-    <option value="講義">講義</option>
-    <option value="個人課題">個人課題</option>
-    <option value="昼食">昼食</option>
-    <option value="休憩">休憩</option>
-    <option value="外出">外出</option>
-    <option value="夕食">夕食</option>
-    <option value="就寝">就寝</option>
-  </select>
+  <label for="dateInput">日付を選択</label>
+  <input type="date" id="dateInput">
 
-  <label for="mood">気分（0～100）</label>
-  <select id="mood">
-    <option value="">選択してください</option>
-    <!-- 0〜100を5刻みで -->
-  </select>
+  <div id="entriesContainer"></div>
 
-  <label for="fatigue">疲労度（0～100）※左が疲れてる</label>
-  <select id="fatigue">
-    <option value="">選択してください</option>
-    <!-- 100〜0を5刻みで -->
-  </select>
+  <button onclick="saveAll()">保存する</button>
+  <div id="saveMessage" style="color: green; display: none;">保存しました！</div>
 
-  <button onclick="saveData()">保存する</button>
-  <div id="savedMessage" class="saved" style="display:none;">保存しました！</div>
+  <h2>週間表示</h2>
+  <div id="weeklyView"></div>
 
   <script>
-    const activityEl = document.getElementById('activity');
-    const moodEl = document.getElementById('mood');
-    const fatigueEl = document.getElementById('fatigue');
+    const HOURS = Array.from({length: 24}, (_, i) => (i + 4) % 24); // 4:00〜翌3:00
+    const TAGS = ["起床", "朝食", "講義", "個人課題", "昼食", "休憩", "外出", "夕食", "就寝"];
+    const moodLevels = Array.from({length: 21}, (_, i) => i * 5); // 0〜100
+    const fatigueLevels = moodLevels;
 
-    // プルダウン選択肢生成
-    for (let i = 0; i <= 100; i += 5) {
-      moodEl.innerHTML += `<option value="${i}">${i}</option>`;
-      fatigueEl.innerHTML += `<option value="${100 - i}">${100 - i}</option>`;
+    const dateInput = document.getElementById('dateInput');
+    const container = document.getElementById('entriesContainer');
+    const weeklyView = document.getElementById('weeklyView');
+
+    dateInput.valueAsDate = new Date();
+    dateInput.addEventListener("change", () => {
+      loadEntries();
+      renderWeeklyTable();
+    });
+
+    function getKey(date) {
+      return "activityLog_" + date;
     }
 
-    function saveData() {
-      const data = {
-        activity: activityEl.value,
-        mood: parseInt(moodEl.value),
-        fatigue: parseInt(fatigueEl.value)
-      };
-      localStorage.setItem('activityLog_1h', JSON.stringify(data));
-      document.getElementById('savedMessage').style.display = 'block';
+    function saveAll() {
+      const date = dateInput.value;
+      const entries = [];
+
+      for (let hour of HOURS) {
+        const activity = document.getElementById(`activity_${hour}`).value;
+        const mood = parseInt(document.getElementById(`mood_${hour}`).value) || 0;
+        const fatigue = parseInt(document.getElementById(`fatigue_${hour}`).value) || 0;
+        entries.push({ hour, activity, mood, fatigue });
+      }
+
+      localStorage.setItem(getKey(date), JSON.stringify(entries));
+      document.getElementById('saveMessage').style.display = 'block';
       setTimeout(() => {
-        document.getElementById('savedMessage').style.display = 'none';
+        document.getElementById('saveMessage').style.display = 'none';
       }, 1500);
     }
 
-    function loadData() {
-      const data = JSON.parse(localStorage.getItem('activityLog_1h'));
-      if (!data) return;
-      activityEl.value = data.activity || "";
-      moodEl.value = data.mood || "";
-      fatigueEl.value = data.fatigue || "";
+    function loadEntries() {
+      container.innerHTML = '';
+      const date = dateInput.value;
+      const saved = JSON.parse(localStorage.getItem(getKey(date))) || [];
+
+      for (let hour of HOURS) {
+        const entry = saved.find(e => e.hour === hour) || { activity: "", mood: "", fatigue: "" };
+        const hourLabel = `${hour.toString().padStart(2, '0')}:00〜`;
+
+        const div = document.createElement("div");
+        div.className = "entry";
+        div.innerHTML = `
+          <h3>${hourLabel}</h3>
+
+          <label>やったこと</label>
+          <select id="activity_${hour}">
+            <option value="">選択してください</option>
+            ${TAGS.map(tag => `<option value="${tag}" ${entry.activity === tag ? "selected" : ""}>${tag}</option>`).join('')}
+          </select>
+
+          <label>気分（0〜100）</label>
+          <select id="mood_${hour}">
+            ${moodLevels.map(v => `<option value="${v}" ${entry.mood === v ? "selected" : ""}>${v}</option>`).join('')}
+          </select>
+
+          <label>疲労度（0〜100）</label>
+          <select id="fatigue_${hour}">
+            ${fatigueLevels.map(v => `<option value="${v}" ${entry.fatigue === v ? "selected" : ""}>${v}</option>`).join('')}
+          </select>
+        `;
+        container.appendChild(div);
+      }
     }
 
-    // 初回読み込み時に復元
-    loadData();
+    function renderWeeklyTable() {
+      const today = new Date(dateInput.value);
+      const day = today.getDay();
+      const diff = (day + 6) % 7;
+      const monday = new Date(today);
+      monday.setDate(today.getDate() - diff);
+
+      const dates = Array.from({length: 7}, (_, i) => {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        return d;
+      });
+
+      const rows = HOURS.map(hour => {
+        const cells = dates.map(date => {
+          const key = getKey(date.toISOString().split('T')[0]);
+          const entryData = JSON.parse(localStorage.getItem(key)) || [];
+          const match = entryData.find(e => e.hour === hour);
+          return match
+            ? `<td>${match.activity}<br><small>気:${match.mood} 疲:${match.fatigue}</small></td>`
+            : `<td></td>`;
+        });
+        return `<tr><td class="hour-col">${hour}:00</td>${cells.join('')}</tr>`;
+      });
+
+      const header = `<tr><th>時間</th>${dates.map(d =>
+        `<th>${d.getMonth() + 1}/${d.getDate()}(${["日","月","火","水","木","金","土"][d.getDay()]})</th>`
+      ).join('')}</tr>`;
+
+      weeklyView.innerHTML = `<table>${header}${rows.join('')}</table>`;
+    }
+
+    loadEntries();
+    renderWeeklyTable();
   </script>
 </body>
 </html>
