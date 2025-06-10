@@ -1,111 +1,146 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>タグ編集</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { font-family: sans-serif; padding: 1em; background: #fefefe; }
-    h1 { font-size: 1.2em; margin-bottom: 1em; }
-    input[type="text"] {
-      width: 70%; padding: 5px; margin-right: 5px;
+    body {
+      font-family: sans-serif;
+      padding: 1em;
+      background-color: #fff;
+      color: #000;
     }
-    button { padding: 5px 10px; margin: 5px 2px; }
-    ul { list-style: none; padding: 0; }
-    li { background: #f4f4f4; margin: 5px 0; padding: 8px; display: flex; justify-content: space-between; align-items: center; }
-    .actions button { font-size: 0.8em; }
-    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em; }
-    a { text-decoration: none; font-size: 0.9em; }
+    @media (prefers-color-scheme: dark) {
+      body {
+        background-color: #111;
+        color: #eee;
+      }
+      input, button {
+        background-color: #222;
+        color: #eee;
+        border: 1px solid #555;
+      }
+    }
+    h1 {
+      text-align: center;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      margin: 0.5em 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .drag-handle {
+      cursor: move;
+      margin-right: 1em;
+    }
+    .tag-controls {
+      display: flex;
+      gap: 0.5em;
+    }
+    label {
+      flex-grow: 1;
+    }
   </style>
 </head>
 <body>
-  <div class="top-bar">
-    <h1>タグ編集</h1>
-    <a href="index.html">← 戻る</a>
-  </div>
-
-  <div>
-    <input type="text" id="newTag" placeholder="新しいタグを入力">
-    <button onclick="addTag()">追加</button>
-  </div>
-
+  <h1>タグの編集</h1>
+  <input type="text" id="newTagInput" placeholder="新しいタグ名"/>
+  <button onclick="addTag()">追加</button>
   <ul id="tagList"></ul>
-
+  <button onclick="saveTags()">保存</button>
   <script>
-    const defaultTags = ["起床", "朝食", "講義", "個人課題", "昼食", "休憩", "外出", "夕食", "就寝", "帰宅", "睡眠"];
-
-    function getUserTags() {
-      return JSON.parse(localStorage.getItem("activityTags") || "[]");
-    }
-
-    function saveUserTags(tags) {
-      localStorage.setItem("activityTags", JSON.stringify(tags));
-    }
+    let defaultTags = ["起床", "シャワー・風呂", "朝食", "昼食", "夕食", "外出", "移動", "個人課題", "講義", "帰宅", "家事", "休憩", "就寝", "薬", "睡眠"];
+    let tags = JSON.parse(localStorage.getItem("customTags")) || [];
+    let visibleMap = JSON.parse(localStorage.getItem("visibleTags")) || {};
 
     function renderTags() {
-      const tagList = document.getElementById("tagList");
-      const userTags = getUserTags();
-      tagList.innerHTML = "";
-
-      // 固定タグ（削除不可）
-      defaultTags.forEach(tag => {
+      const list = document.getElementById("tagList");
+      list.innerHTML = "";
+      tags.forEach((tag, i) => {
         const li = document.createElement("li");
-        li.innerHTML = `<span>${tag}</span><span style="font-size: 0.8em; color: gray;">（固定）</span>`;
-        tagList.appendChild(li);
-      });
-
-      // ユーザー追加タグ
-      userTags.forEach((tag, i) => {
-        const li = document.createElement("li");
+        li.draggable = true;
+        li.dataset.index = i;
         li.innerHTML = `
-          <span>${tag}</span>
-          <div class="actions">
-            <button onclick="moveUp(${i})">↑</button>
-            <button onclick="moveDown(${i})">↓</button>
-            <button onclick="deleteTag(${i})">削除</button>
+          <span class="drag-handle">↕</span>
+          <label><input type="text" value="${tag}" onchange="updateTag(${i}, this.value)" /></label>
+          <div class="tag-controls">
+            <label><input type="checkbox" ${visibleMap[tag] !== false ? "checked" : ""} onchange="toggleVisibility(${i}, this.checked)"> 表示</label>
+            <button onclick="removeTag(${i})">削除</button>
           </div>
         `;
-        tagList.appendChild(li);
+        list.appendChild(li);
       });
+      enableDrag();
     }
 
     function addTag() {
-      const input = document.getElementById("newTag");
-      const newTag = input.value.trim();
-      if (!newTag) return;
-      const userTags = getUserTags();
-      const allTags = [...defaultTags, ...userTags];
-      if (allTags.includes(newTag)) {
-        alert("既に存在するタグです");
-        return;
+      const input = document.getElementById("newTagInput");
+      const name = input.value.trim();
+      if (name && !tags.includes(name) && !defaultTags.includes(name)) {
+        tags.push(name);
+        visibleMap[name] = true;
+        input.value = "";
+        renderTags();
       }
-      userTags.push(newTag);
-      saveUserTags(userTags);
-      input.value = "";
+    }
+
+    function updateTag(index, value) {
+      const old = tags[index];
+      const newTag = value.trim();
+      if (newTag && newTag !== old) {
+        visibleMap[newTag] = visibleMap[old];
+        delete visibleMap[old];
+        tags[index] = newTag;
+        renderTags();
+      }
+    }
+
+    function toggleVisibility(index, visible) {
+      visibleMap[tags[index]] = visible;
+    }
+
+    function removeTag(index) {
+      const tag = tags[index];
+      tags.splice(index, 1);
+      delete visibleMap[tag];
       renderTags();
     }
 
-    function deleteTag(index) {
-      const userTags = getUserTags();
-      userTags.splice(index, 1);
-      saveUserTags(userTags);
-      renderTags();
+    function saveTags() {
+      localStorage.setItem("customTags", JSON.stringify(tags));
+      localStorage.setItem("visibleTags", JSON.stringify(visibleMap));
+      alert("保存しました");
     }
 
-    function moveUp(index) {
-      const tags = getUserTags();
-      if (index === 0) return;
-      [tags[index - 1], tags[index]] = [tags[index], tags[index - 1]];
-      saveUserTags(tags);
-      renderTags();
-    }
+    function enableDrag() {
+      const list = document.getElementById("tagList");
+      let dragSrcEl = null;
 
-    function moveDown(index) {
-      const tags = getUserTags();
-      if (index >= tags.length - 1) return;
-      [tags[index + 1], tags[index]] = [tags[index], tags[index + 1]];
-      saveUserTags(tags);
-      renderTags();
+      list.querySelectorAll("li").forEach(li => {
+        li.addEventListener("dragstart", e => {
+          dragSrcEl = li;
+          e.dataTransfer.effectAllowed = "move";
+        });
+
+        li.addEventListener("dragover", e => {
+          e.preventDefault();
+        });
+
+        li.addEventListener("drop", e => {
+          if (dragSrcEl !== li) {
+            const from = parseInt(dragSrcEl.dataset.index);
+            const to = parseInt(li.dataset.index);
+            tags.splice(to, 0, tags.splice(from, 1)[0]);
+            renderTags();
+          }
+        });
+      });
     }
 
     renderTags();
