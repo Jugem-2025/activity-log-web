@@ -89,11 +89,11 @@
     }
     .flex-row label {
       font-weight: bold;
-      margin-right: 4px;
+      width: auto;
+      white-space: nowrap;
     }
     .flex-row select,
     .flex-row input[type="text"] {
-      flex: 1;
       padding: 6px;
       font-size: 0.95em;
       border: 1px solid #ccc;
@@ -110,6 +110,29 @@
     .save-btn:hover {
       background: #3b78c5;
     }
+    .daily-note {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .daily-note label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+    .daily-note input[type="checkbox"] {
+      margin-right: 6px;
+    }
+    .daily-note textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      resize: vertical;
+    }
   </style>
 </head>
 <body>
@@ -124,16 +147,36 @@
   <input type="date" id="recordDate" class="date-picker">
   <div id="recordArea"></div>
 
+  <div class="daily-note">
+    <label><input type="checkbox" id="alcohol"> アルコール</label>
+    <label><input type="checkbox" id="caffeine"> カフェイン</label>
+    <label>メモ・備考：</label>
+    <textarea id="dailyMemo" rows="3" placeholder="自由記入"></textarea>
+  </div>
+
   <script>
     const defaultTags = ["起床","シャワー・風呂","朝食","昼食","夕食","外出","移動","個人課題","講義","帰宅","家事","休憩","就寝","薬","睡眠"];
     const tags = JSON.parse(localStorage.getItem("tags")) || defaultTags;
     const moods = Array.from({ length: 21 }, (_, i) => i * 5);
     const recordArea = document.getElementById('recordArea');
+    const alcoholChk = document.getElementById('alcohol');
+    const caffeineChk = document.getElementById('caffeine');
+    const dailyMemo = document.getElementById('dailyMemo');
 
     function render() {
       const dateStr = document.getElementById('recordDate').value;
       const data = JSON.parse(localStorage.getItem(dateStr) || '{}');
       recordArea.innerHTML = '';
+
+      if (data.dailyNote) {
+        alcoholChk.checked = data.dailyNote.alcohol;
+        caffeineChk.checked = data.dailyNote.caffeine;
+        dailyMemo.value = data.dailyNote.memo;
+      } else {
+        alcoholChk.checked = data.dailyNote?.alcohol || false;
+        caffeineChk.checked = data.dailyNote?.caffeine || false;
+        dailyMemo.value = data.dailyNote?.memo || '';
+      }
 
       for (let i = 0; i < 24; i++) {
         const hour = (i + 4) % 24;
@@ -170,8 +213,19 @@
           chk.value = tag;
           chk.checked = entry.activity.includes(tag);
           chk.onchange = () => {
-            if (chk.checked && !entry.activity.includes(tag)) entry.activity.push(tag);
-            if (!chk.checked) entry.activity = entry.activity.filter(t => t !== tag);
+            if (chk.checked) {
+              if (tag === "睡眠") {
+                entry.activity = ["睡眠"];
+                entry.mood = '';
+                entry.fatigue = '';
+              } else {
+                entry.activity = entry.activity.filter(t => t !== "睡眠");
+                entry.activity.push(tag);
+              }
+            } else {
+              entry.activity = entry.activity.filter(t => t !== tag);
+            }
+            render();
           };
           lbl.appendChild(chk);
           lbl.append(tag);
@@ -180,7 +234,6 @@
 
         const row = document.createElement('div');
         row.className = 'flex-row';
-
         const moodLabel = document.createElement('label');
         moodLabel.textContent = "気分:";
         const selMood = document.createElement('select');
@@ -190,6 +243,7 @@
           if (m === entry.mood) o.selected = true;
           selMood.appendChild(o);
         });
+        if (entry.activity.includes("睡眠")) selMood.value = '';
 
         const fatigueLabel = document.createElement('label');
         fatigueLabel.textContent = "疲労度:";
@@ -200,6 +254,7 @@
           if (f === entry.fatigue) o.selected = true;
           selFat.appendChild(o);
         });
+        if (entry.activity.includes("睡眠")) selFat.value = '';
 
         const freeTxt = document.createElement('input');
         freeTxt.type = 'text';
@@ -218,13 +273,19 @@
           localStorage.setItem(dateStr, JSON.stringify(data));
           render();
         };
-
+        
         btn.onclick = () => {
-          entry.mood = parseInt(selMood.value);
-          entry.fatigue = parseInt(selFat.value);
+          entry.activity = entry.activity;
+          entry.mood = entry.activity.includes("睡眠") ? '' : parseInt(selMood.value);
+          entry.fatigue = entry.activity.includes("睡眠") ? '' : parseInt(selFat.value);
           entry.free = freeTxt.value;
           entry.folded = true;
           data[key] = entry;
+          data.dailyNote = {
+            alcohol: alcoholChk.checked,
+            caffeine: caffeineChk.checked,
+            memo: dailyMemo.value
+          };
           localStorage.setItem(dateStr, JSON.stringify(data));
           render();
         };
@@ -232,7 +293,6 @@
         compact.style.display = entry.folded ? 'block' : 'none';
       }
     }
-
     const dp = document.getElementById('recordDate');
     dp.value = new Date().toISOString().split('T')[0];
     dp.onchange = render;
