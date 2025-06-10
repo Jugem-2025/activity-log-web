@@ -6,177 +6,225 @@
   <title>活動記録</title>
   <style>
     body {
-      font-family: sans-serif;
-      padding: 1em;
+      font-family: 'Segoe UI', sans-serif;
+      max-width: 800px;
+      margin: auto;
+      background: #f5f6fa;
+      color: #333;
     }
-    .top-icons {
-      text-align: right;
-      margin-bottom: 10px;
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #4a90e2;
+      color: white;
+      padding: 12px 16px;
+      border-radius: 8px;
+    }
+    header h1 {
+      font-size: 1.4em;
+      margin: 0;
     }
     .top-icons a {
       margin-left: 10px;
+      color: white;
+      font-size: 1.4em;
       text-decoration: none;
-      font-size: 1.5em;
+    }
+    .date-picker {
+      display: block;
+      margin: 16px 0;
+      font-size: 1em;
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
     }
     .hour-block {
-      border: 1px solid #ccc;
-      margin-bottom: 10px;
-      padding: 8px;
-      border-radius: 5px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
     .hour-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding: 8px 12px;
+      background: #f0f4f8;
+      border-bottom: 1px solid #ddd;
       cursor: pointer;
     }
-    .compact-display {
-      padding-left: 1em;
-      font-size: 0.9em;
+    .compact {
+      display: none;
+      padding: 10px 12px;
+      font-size: 0.95em;
       color: #555;
     }
-    .hidden {
+    .hour-content {
+      padding: 10px 12px;
+    }
+    .hour-content.hidden {
       display: none;
     }
-    label {
-      display: inline-block;
-      margin-top: 4px;
+    .checkbox-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
     }
-    select, input[type="text"] {
-      width: 100%;
-      margin-bottom: 4px;
+    .checkbox-grid label {
+      background: #e8f0fe;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.95em;
+    }
+    .flex-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .flex-row select,
+    .flex-row input[type="text"] {
+      flex: 1;
+      padding: 6px;
+      font-size: 0.95em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
     }
     .save-btn {
-      margin-top: 6px;
+      background: #4a90e2;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .save-btn:hover {
+      background: #3b78c5;
     }
   </style>
 </head>
 <body>
-  <h1>活動記録</h1>
-  <div class="top-icons">
-    <a href="week.html" title="週間表示ページへ">📅</a>
-    <a href="tags.html" title="タグ編集ページへ">⚙️</a>
-  </div>
-  <input type="date" id="recordDate" />
+  <header>
+    <h1>活動記録</h1>
+    <div class="top-icons">
+      <a href="week.html" title="週間表示">📅</a>
+      <a href="tags.html" title="タグ編集">⚙️</a>
+    </div>
+  </header>
+
+  <input type="date" id="recordDate" class="date-picker">
+
   <div id="recordArea"></div>
 
   <script>
-    const tags = JSON.parse(localStorage.getItem("tags") || '["起床", "(続き)", "シャワー・風呂", "朝食", "昼食", "夕食", "外出", "移動", "個人課題", "講義", "帰宅", "家事", "休憩", "就寝", "薬", "睡眠"]');
-    const options = Array.from({length: 21}, (_, i) => i * 5);
-    const recordArea = document.getElementById("recordArea");
+    const defaultTags = ["起床","シャワー・風呂","朝食","昼食","夕食","外出","移動","個人課題","講義","帰宅","家事","休憩","就寝","薬","睡眠"];
+    const tags = JSON.parse(localStorage.getItem("tags")) || defaultTags;
+    const moods = Array.from({ length: 21 }, (_, i) => i * 5);
 
-    function renderForm(dateStr) {
-      recordArea.innerHTML = "";
-      const saved = JSON.parse(localStorage.getItem(dateStr) || "{}");
+    const recordArea = document.getElementById('recordArea');
+
+    function render() {
+      const dateStr = document.getElementById('recordDate').value;
+      const data = JSON.parse(localStorage.getItem(dateStr) || '{}');
+      recordArea.innerHTML = '';
 
       for (let i = 0; i < 24; i++) {
         const hour = (i + 4) % 24;
-        const key = hour.toString().padStart(2, "0");
-        const entry = saved[key] || { activity: [], mood: 50, fatigue: 50, free: "", folded: false };
+        const key = hour.toString().padStart(2,'0');
+        const entry = data[key] || { activity: [], mood: 50, fatigue: 50, free:'', folded:false };
 
-        const block = document.createElement("div");
-        block.className = "hour-block";
-        const header = document.createElement("div");
-        header.className = "hour-header";
-        const timeLabel = document.createElement("div");
-        timeLabel.textContent = `${key}:00〜`;
+        const block = document.createElement('div');
+        block.className = 'hour-block';
+        const header = document.createElement('div');
+        header.className = 'hour-header';
+        const label = document.createElement('div');
+        label.textContent = `${key}:00`;
+        const btn = document.createElement('button');
+        btn.className = 'save-btn';
+        btn.textContent = '保存する';
 
-        const saveBtn = document.createElement("button");
-        saveBtn.textContent = "保存する";
-        saveBtn.className = "save-btn";
-
-        const container = document.createElement("div");
-        container.className = entry.folded ? "hidden" : "";
-
-        const compact = document.createElement("div");
-        compact.className = "compact-display";
+        const compact = document.createElement('div');
+        compact.className = 'compact';
         compact.innerHTML = `
-          やったこと: ${entry.activity.join(", ")}<br>
-          気分: ${entry.mood} / 疲労: ${entry.fatigue}<br>
-          メモ: ${entry.free}
+          <strong>やったこと:</strong> ${entry.activity.join(', ') || '―'}<br>
+          <strong>気分:</strong> ${entry.mood}　<strong>疲労:</strong> ${entry.fatigue}<br>
+          <strong>メモ:</strong> ${entry.free || '―'}
         `;
-        compact.style.display = entry.folded ? "block" : "none";
 
-        const sel = document.createElement("select");
-        const defaultOpt = document.createElement("option");
-        defaultOpt.textContent = "やったことを選択";
-        defaultOpt.value = "";
-        sel.appendChild(defaultOpt);
+        const content = document.createElement('div');
+        content.className = entry.folded ? 'hour-content hidden' : 'hour-content';
+
+        // activity checkboxes
+        const ckGrid = document.createElement('div');
+        ckGrid.className = 'checkbox-grid';
         tags.forEach(tag => {
-          const opt = document.createElement("option");
-          opt.value = tag;
-          opt.textContent = tag;
-          sel.appendChild(opt);
-        });
-        sel.onchange = () => {
-          if (sel.value && !entry.activity.includes(sel.value)) {
-            entry.activity.push(sel.value);
-            renderForm(dateStr); // 再描画
-          }
-        };
-
-        const moodSel = document.createElement("select");
-        options.forEach(val => {
-          const opt = document.createElement("option");
-          opt.value = val;
-          opt.textContent = val;
-          if (val === entry.mood) opt.selected = true;
-          moodSel.appendChild(opt);
+          const lbl = document.createElement('label');
+          const chk = document.createElement('input');
+          chk.type = 'checkbox';
+          chk.value = tag;
+          chk.checked = entry.activity.includes(tag);
+          chk.onchange = () => {
+            if (chk.checked && !entry.activity.includes(tag)) entry.activity.push(tag);
+            if (!chk.checked) entry.activity = entry.activity.filter(t=>t!==tag);
+          };
+          lbl.appendChild(chk);
+          lbl.append(tag);
+          ckGrid.appendChild(lbl);
         });
 
-        const fatigueSel = document.createElement("select");
-        options.forEach(val => {
-          const opt = document.createElement("option");
-          opt.value = val;
-          opt.textContent = val;
-          if (val === entry.fatigue) opt.selected = true;
-          fatigueSel.appendChild(opt);
-        });
+        // mood/fatigue and free
+        const row = document.createElement('div');
+        row.className = 'flex-row';
+        const selMood = document.createElement('select');
+        moods.forEach(m=>{ const o=document.createElement('option'); o.value=o.textContent=m; if(m===entry.mood) o.selected=true; selMood.appendChild(o); });
+        const selFat = document.createElement('select');
+        moods.forEach(f=>{ const o=document.createElement('option'); o.value=o.textContent=f; if(f===entry.fatigue) o.selected=true; selFat.appendChild(o); });
+        const freeTxt = document.createElement('input');
+        freeTxt.type='text';
+        freeTxt.placeholder = '自由記入';
+        freeTxt.value = entry.free;
+        row.append(selMood, selFat, freeTxt);
 
-        const freeInput = document.createElement("input");
-        freeInput.type = "text";
-        freeInput.placeholder = "自由記入欄";
-        freeInput.value = entry.free;
+        content.append(
+          ckGrid,
+          row,
+          btn
+        );
+
+        header.append(label, btn);
+        block.append(header, compact, content);
+        recordArea.append(block);
 
         header.onclick = () => {
           entry.folded = !entry.folded;
-          renderForm(dateStr);
+          data[key] = entry;
+          localStorage.setItem(dateStr, JSON.stringify(data));
+          render();
         };
 
-        saveBtn.onclick = () => {
-          entry.mood = parseInt(moodSel.value);
-          entry.fatigue = parseInt(fatigueSel.value);
-          entry.free = freeInput.value;
+        btn.onclick = () => {
+          entry.mood = parseInt(selMood.value);
+          entry.fatigue = parseInt(selFat.value);
+          entry.free = freeTxt.value;
           entry.folded = true;
-          saved[key] = entry;
-          localStorage.setItem(dateStr, JSON.stringify(saved));
-          renderForm(dateStr);
+          data[key] = entry;
+          localStorage.setItem(dateStr, JSON.stringify(data));
+          render();
         };
 
-        header.appendChild(timeLabel);
-        header.appendChild(saveBtn);
-        block.appendChild(header);
-        block.appendChild(container);
-        block.appendChild(compact);
-
-        container.appendChild(document.createElement("label")).textContent = "やったこと";
-        container.appendChild(sel);
-        container.appendChild(document.createElement("label")).textContent = "気分";
-        container.appendChild(moodSel);
-        container.appendChild(document.createElement("label")).textContent = "疲労度";
-        container.appendChild(fatigueSel);
-        container.appendChild(document.createElement("label")).textContent = "自由記入";
-        container.appendChild(freeInput);
-
-        recordArea.appendChild(block);
+        compact.style.display = entry.folded ? 'block' : 'none';
       }
     }
 
-    const dateInput = document.getElementById("recordDate");
-    const today = new Date().toISOString().split("T")[0];
-    dateInput.value = today;
-    dateInput.onchange = () => renderForm(dateInput.value);
-    renderForm(today);
+    const dp = document.getElementById('recordDate');
+    dp.value = new Date().toISOString().split('T')[0];
+    dp.onchange = render;
+    render();
   </script>
 </body>
 </html>
