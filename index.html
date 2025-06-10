@@ -87,6 +87,10 @@
       align-items: center;
       margin-bottom: 8px;
     }
+    .flex-row label {
+      font-weight: bold;
+      margin-right: 4px;
+    }
     .flex-row select,
     .flex-row input[type="text"] {
       flex: 1;
@@ -118,14 +122,12 @@
   </header>
 
   <input type="date" id="recordDate" class="date-picker">
-
   <div id="recordArea"></div>
 
   <script>
     const defaultTags = ["起床","シャワー・風呂","朝食","昼食","夕食","外出","移動","個人課題","講義","帰宅","家事","休憩","就寝","薬","睡眠"];
     const tags = JSON.parse(localStorage.getItem("tags")) || defaultTags;
     const moods = Array.from({ length: 21 }, (_, i) => i * 5);
-
     const recordArea = document.getElementById('recordArea');
 
     function render() {
@@ -159,7 +161,6 @@
         const content = document.createElement('div');
         content.className = entry.folded ? 'hour-content hidden' : 'hour-content';
 
-        // activity checkboxes
         const ckGrid = document.createElement('div');
         ckGrid.className = 'checkbox-grid';
         tags.forEach(tag => {
@@ -170,32 +171,43 @@
           chk.checked = entry.activity.includes(tag);
           chk.onchange = () => {
             if (chk.checked && !entry.activity.includes(tag)) entry.activity.push(tag);
-            if (!chk.checked) entry.activity = entry.activity.filter(t=>t!==tag);
+            if (!chk.checked) entry.activity = entry.activity.filter(t => t !== tag);
           };
           lbl.appendChild(chk);
           lbl.append(tag);
           ckGrid.appendChild(lbl);
         });
 
-        // mood/fatigue and free
         const row = document.createElement('div');
         row.className = 'flex-row';
+
+        const moodLabel = document.createElement('label');
+        moodLabel.textContent = "気分:";
         const selMood = document.createElement('select');
-        moods.forEach(m=>{ const o=document.createElement('option'); o.value=o.textContent=m; if(m===entry.mood) o.selected=true; selMood.appendChild(o); });
+        moods.forEach(m => {
+          const o = document.createElement('option');
+          o.value = o.textContent = m;
+          if (m === entry.mood) o.selected = true;
+          selMood.appendChild(o);
+        });
+
+        const fatigueLabel = document.createElement('label');
+        fatigueLabel.textContent = "疲労度:";
         const selFat = document.createElement('select');
-        moods.forEach(f=>{ const o=document.createElement('option'); o.value=o.textContent=f; if(f===entry.fatigue) o.selected=true; selFat.appendChild(o); });
+        moods.forEach(f => {
+          const o = document.createElement('option');
+          o.value = o.textContent = f;
+          if (f === entry.fatigue) o.selected = true;
+          selFat.appendChild(o);
+        });
+
         const freeTxt = document.createElement('input');
-        freeTxt.type='text';
+        freeTxt.type = 'text';
         freeTxt.placeholder = '自由記入';
         freeTxt.value = entry.free;
-        row.append(selMood, selFat, freeTxt);
 
-        content.append(
-          ckGrid,
-          row,
-          btn
-        );
-
+        row.append(moodLabel, selMood, fatigueLabel, selFat, freeTxt);
+        content.append(ckGrid, row, btn);
         header.append(label, btn);
         block.append(header, compact, content);
         recordArea.append(block);
