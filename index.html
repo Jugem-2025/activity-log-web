@@ -1,3 +1,25 @@
+  <script>
+    const tags = JSON.parse(localStorage.getItem("tags") || '["起床", "(続き)", "シャワー・風呂", "朝食", "昼食", "夕食", "外出", "移動", "個人課題", "講義", "帰宅", "家事", "休憩", "就寝", "薬", "睡眠"]');
+    const options = Array.from({length: 21}, (_, i) => i * 5);
+    const recordArea = document.getElementById("recordArea");
+
+    function renderForm(dateStr) {
+      recordArea.innerHTML = "";
+      const saved = JSON.parse(localStorage.getItem(dateStr) || "{}");
+
+      for (let i = 0; i < 24; i++) {
+        const hour = (i + 4) % 24;
+        const key = hour.toString().padStart(2, "0");
+        const entry = saved[key] || { activity: [], mood: 50, fatigue: 50, free: "", folded:
+
+承知しました！  
+以下に**右上アイコン（📅週間表示 / ⚙️タグ編集）付き＆保存後自動折りたたみ＋再編集可能な最新版の`index.html`全体コード**を**ベタ貼りで完全送信**いたします。
+
+---
+
+### ✅ `index.html`（最新版ベタ貼り）
+
+```html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -8,6 +30,15 @@
     body {
       font-family: sans-serif;
       padding: 1em;
+    }
+    .top-icons {
+      text-align: right;
+      margin-bottom: 10px;
+    }
+    .top-icons a {
+      margin-left: 10px;
+      text-decoration: none;
+      font-size: 1.5em;
     }
     .hour-block {
       border: 1px solid #ccc;
@@ -44,6 +75,10 @@
 </head>
 <body>
   <h1>活動記録</h1>
+  <div class="top-icons">
+    <a href="week.html" title="週間表示ページへ">📅</a>
+    <a href="tags.html" title="タグ編集ページへ">⚙️</a>
+  </div>
   <input type="date" id="recordDate" />
   <div id="recordArea"></div>
 
