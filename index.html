@@ -80,10 +80,14 @@
       border-radius: 4px;
       cursor: pointer;
       font-size: 0.95em;
+      display: flex;
+      align-items: center;
+    }
+    .checkbox-grid input[type="checkbox"] {
+      margin-right: 4px;
     }
     .flex-row {
       display: flex;
-      flex-wrap: wrap;
       gap: 8px;
       align-items: center;
       margin-bottom: 8px;
@@ -172,20 +176,15 @@
         alcoholChk.checked = data.dailyNote.alcohol;
         caffeineChk.checked = data.dailyNote.caffeine;
         dailyMemo.value = data.dailyNote.memo;
-      } else {
-        alcoholChk.checked = false;
-        caffeineChk.checked = false;
-        dailyMemo.value = '';
       }
 
       for (let i = 0; i < 24; i++) {
         const hour = (i + 4) % 24;
-        const key = hour.toString().padStart(2, '0');
-        const entry = data[key] || { activity: [], mood: 50, fatigue: 50, free: '', folded: false };
+        const key = hour.toString().padStart(2,'0');
+        const entry = data[key] || { activity: [], mood: 50, fatigue: 50, free:'', folded:false };
 
         const block = document.createElement('div');
         block.className = 'hour-block';
-
         const header = document.createElement('div');
         header.className = 'hour-header';
         const label = document.createElement('div');
@@ -213,6 +212,7 @@
           chk.type = 'checkbox';
           chk.value = tag;
           chk.checked = entry.activity.includes(tag);
+          chk.onclick = e => e.stopPropagation(); // 親ラベルのクリックと競合しないように
           chk.onchange = () => {
             if (chk.checked) {
               if (tag === "睡眠") {
@@ -229,13 +229,17 @@
             render();
           };
           lbl.appendChild(chk);
-          lbl.append(tag);
+          lbl.appendChild(document.createTextNode(tag));
           ckGrid.appendChild(lbl);
         });
 
+        const freeTxt = document.createElement('input');
+        freeTxt.type = 'text';
+        freeTxt.placeholder = '自由記入';
+        freeTxt.value = entry.free;
+
         const row = document.createElement('div');
         row.className = 'flex-row';
-
         const moodLabel = document.createElement('label');
         moodLabel.textContent = "気分:";
         const selMood = document.createElement('select');
@@ -258,13 +262,8 @@
         });
         if (entry.activity.includes("睡眠")) selFat.value = '';
 
-        const freeTxt = document.createElement('input');
-        freeTxt.type = 'text';
-        freeTxt.placeholder = '自由記入';
-        freeTxt.value = entry.free;
-
-        row.append(moodLabel, selMood, fatigueLabel, selFat, freeTxt);
-        content.append(ckGrid, row, btn);
+        row.append(moodLabel, selMood, fatigueLabel, selFat);
+        content.append(ckGrid, freeTxt, row, btn);
         header.append(label, btn);
         block.append(header, compact, content);
         recordArea.append(block);
@@ -275,7 +274,7 @@
           localStorage.setItem(dateStr, JSON.stringify(data));
           render();
         };
-
+        
         btn.onclick = () => {
           entry.mood = entry.activity.includes("睡眠") ? '' : parseInt(selMood.value);
           entry.fatigue = entry.activity.includes("睡眠") ? '' : parseInt(selFat.value);
