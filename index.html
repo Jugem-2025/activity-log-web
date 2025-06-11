@@ -185,7 +185,6 @@
 
         const block = document.createElement('div');
         block.className = 'hour-block';
-
         const header = document.createElement('div');
         header.className = 'hour-header';
         const label = document.createElement('div');
@@ -207,18 +206,13 @@
 
         const ckGrid = document.createElement('div');
         ckGrid.className = 'checkbox-grid';
-
         tags.forEach((tag, idx) => {
-          const chkId = `chk-${key}-${idx}`;
-          const lbl = document.createElement('label');
+          const id = `tag-${hour}-${idx}`;
           const chk = document.createElement('input');
           chk.type = 'checkbox';
-          chk.id = chkId;
           chk.value = tag;
+          chk.id = id;
           chk.checked = entry.activity.includes(tag);
-          lbl.htmlFor = chkId;
-          lbl.appendChild(chk);
-          lbl.append(tag);
           chk.onchange = () => {
             if (chk.checked) {
               if (tag === "睡眠") {
@@ -227,15 +221,18 @@
                 entry.fatigue = '';
               } else {
                 entry.activity = entry.activity.filter(t => t !== "睡眠");
-                if (!entry.activity.includes(tag)) {
-                  entry.activity.push(tag);
-                }
+                entry.activity.push(tag);
               }
             } else {
               entry.activity = entry.activity.filter(t => t !== tag);
             }
             render();
           };
+
+          const lbl = document.createElement('label');
+          lbl.htmlFor = id;
+          lbl.appendChild(chk);
+          lbl.append(tag);
           ckGrid.appendChild(lbl);
         });
 
@@ -269,7 +266,6 @@
         if (entry.activity.includes("睡眠")) selFat.value = '';
 
         row.append(moodLabel, selMood, fatigueLabel, selFat);
-
         content.append(ckGrid, freeTxt, row, btn);
         header.append(label, btn);
         block.append(header, compact, content);
@@ -281,7 +277,7 @@
           localStorage.setItem(dateStr, JSON.stringify(data));
           render();
         };
-        
+
         btn.onclick = () => {
           entry.mood = entry.activity.includes("睡眠") ? '' : parseInt(selMood.value);
           entry.fatigue = entry.activity.includes("睡眠") ? '' : parseInt(selFat.value);
