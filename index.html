@@ -212,7 +212,6 @@
           chk.type = 'checkbox';
           chk.value = tag;
           chk.checked = entry.activity.includes(tag);
-          chk.onclick = e => e.stopPropagation(); // 親ラベルのクリックと競合しないように
           chk.onchange = () => {
             if (chk.checked) {
               if (tag === "睡眠") {
@@ -274,7 +273,7 @@
           localStorage.setItem(dateStr, JSON.stringify(data));
           render();
         };
-        
+
         btn.onclick = () => {
           entry.mood = entry.activity.includes("睡眠") ? '' : parseInt(selMood.value);
           entry.fatigue = entry.activity.includes("睡眠") ? '' : parseInt(selFat.value);
