@@ -143,7 +143,7 @@
   <header>
     <h1>活動記録</h1>
     <div class="top-icons">
-      <a href="week.html" title="週間表示">📅</a>
+      <a href="weekly.html" title="週間表示">📅</a>
       <a href="tags.html" title="タグ編集">⚙️</a>
     </div>
   </header>
@@ -206,14 +206,14 @@
 
         const ckGrid = document.createElement('div');
         ckGrid.className = 'checkbox-grid';
-        tags.forEach((tag, idx) => {
-          const id = `tag-${hour}-${idx}`;
+        tags.forEach(tag => {
+          const lbl = document.createElement('label');
           const chk = document.createElement('input');
           chk.type = 'checkbox';
           chk.value = tag;
-          chk.id = id;
           chk.checked = entry.activity.includes(tag);
-          chk.onchange = () => {
+          chk.addEventListener('click', e => e.stopPropagation());
+          chk.addEventListener('change', () => {
             if (chk.checked) {
               if (tag === "睡眠") {
                 entry.activity = ["睡眠"];
@@ -221,18 +221,15 @@
                 entry.fatigue = '';
               } else {
                 entry.activity = entry.activity.filter(t => t !== "睡眠");
-                entry.activity.push(tag);
+                if (!entry.activity.includes(tag)) entry.activity.push(tag);
               }
             } else {
               entry.activity = entry.activity.filter(t => t !== tag);
             }
             render();
-          };
-
-          const lbl = document.createElement('label');
-          lbl.htmlFor = id;
+          });
           lbl.appendChild(chk);
-          lbl.append(tag);
+          lbl.appendChild(document.createTextNode(tag));
           ckGrid.appendChild(lbl);
         });
 
@@ -277,7 +274,7 @@
           localStorage.setItem(dateStr, JSON.stringify(data));
           render();
         };
-
+        
         btn.onclick = () => {
           entry.mood = entry.activity.includes("睡眠") ? '' : parseInt(selMood.value);
           entry.fatigue = entry.activity.includes("睡眠") ? '' : parseInt(selFat.value);
