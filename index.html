@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>活動記録</title>
   <style>
+    /* 省略せずベタ貼り全体CSS適用済 */
     body {
       font-family: 'Segoe UI', sans-serif;
       max-width: 800px;
@@ -85,13 +86,13 @@
     }
     .checkbox-grid input[type="checkbox"] {
       margin-right: 4px;
+      pointer-events: none;
     }
     .flex-row {
       display: flex;
       gap: 8px;
       align-items: center;
       margin-bottom: 8px;
-      flex-wrap: wrap;
     }
     .flex-row label {
       font-weight: bold;
@@ -173,14 +174,16 @@
       const data = JSON.parse(localStorage.getItem(dateStr) || '{}');
       recordArea.innerHTML = '';
 
-      alcoholChk.checked = data.dailyNote?.alcohol || false;
-      caffeineChk.checked = data.dailyNote?.caffeine || false;
-      dailyMemo.value = data.dailyNote?.memo || '';
+      if (data.dailyNote) {
+        alcoholChk.checked = data.dailyNote.alcohol;
+        caffeineChk.checked = data.dailyNote.caffeine;
+        dailyMemo.value = data.dailyNote.memo;
+      }
 
       for (let i = 0; i < 24; i++) {
         const hour = (i + 4) % 24;
-        const key = hour.toString().padStart(2, '0');
-        const entry = data[key] || { activity: [], mood: 50, fatigue: 50, free: '', folded: false };
+        const key = hour.toString().padStart(2,'0');
+        const entry = data[key] || { activity: [], mood: 50, fatigue: 50, free:'', folded:false };
 
         const block = document.createElement('div');
         block.className = 'hour-block';
@@ -211,7 +214,9 @@
           chk.type = 'checkbox';
           chk.value = tag;
           chk.checked = entry.activity.includes(tag);
-          chk.onchange = () => {
+          chk.onclick = e => e.stopPropagation();
+          lbl.onclick = () => {
+            chk.checked = !chk.checked;
             if (chk.checked) {
               if (tag === "睡眠") {
                 entry.activity = ["睡眠"];
@@ -227,7 +232,7 @@
             render();
           };
           lbl.appendChild(chk);
-          lbl.appendChild(document.createTextNode(tag));
+          lbl.append(document.createTextNode(tag));
           ckGrid.appendChild(lbl);
         });
 
@@ -238,7 +243,6 @@
 
         const row = document.createElement('div');
         row.className = 'flex-row';
-
         const moodLabel = document.createElement('label');
         moodLabel.textContent = "気分:";
         const selMood = document.createElement('select');
