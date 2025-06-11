@@ -76,20 +76,22 @@
 
     // 各時間帯の行を追加
     for (let h = 0; h < 24; h++) {
+      const hour = hours[h];
       const timeCell = document.createElement("div");
       timeCell.className = "cell time-col";
-      timeCell.textContent = `${String(hours[h]).padStart(2, "0")}:00`;
+      timeCell.textContent = `${String(hour).padStart(2, "0")}:00`;
       weekGrid.appendChild(timeCell);
 
       for (let d = 0; d < 7; d++) {
+        const dateStr = days[d].toISOString().split("T")[0];
+        const raw = localStorage.getItem(dateStr);
         const cell = document.createElement("div");
         cell.className = "cell";
-        const key = `${days[d].toISOString().split("T")[0]}_entries`;
-        const raw = localStorage.getItem(key);
+
         if (raw) {
           try {
-            const entries = JSON.parse(raw);
-            const entry = entries.find(e => e.hour === hours[h]);
+            const data = JSON.parse(raw);
+            const entry = data[hour.toString().padStart(2,'0')];
             if (entry) {
               const acts = (entry.activity || []).join(", ");
               if (acts === "睡眠") {
@@ -97,22 +99,25 @@
               } else {
                 cell.innerHTML = `
                   <div>${acts}</div>
-                  <div style="font-size: 0.75em; color: gray;">気:${entry.mood} 疲:${entry.fatigue}</div>
+                  <div style="font-size: 0.75em; color: gray;">
+                    気:${entry.mood ?? "―"} 疲:${entry.fatigue ?? "―"}
+                  </div>
                 `;
               }
             }
-          } catch(e) {
+          } catch (e) {
             console.error("Error parsing entry", e);
           }
         }
+
         weekGrid.appendChild(cell);
       }
     }
 
-    // 画像として保存する処理（A4サイズ90%スケーリング）
+    // 画像として保存する処理（A4横サイズの90%でスケーリング）
     function downloadImage() {
       html2canvas(document.getElementById("weekGrid")).then(canvas => {
-        const a4Width = 1122;  // A4横幅の90%
+        const a4Width = 1122;  // A4横向きの90%
         const scale = a4Width / canvas.width;
         const scaledCanvas = document.createElement("canvas");
         scaledCanvas.width = a4Width;
