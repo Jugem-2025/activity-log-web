@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -188,21 +187,17 @@
 
         const header = document.createElement('div');
         header.className = 'hour-header';
-
         const label = document.createElement('div');
         label.textContent = `${key}:00`;
-
         const btn = document.createElement('button');
         btn.className = 'save-btn';
         btn.textContent = '保存する';
 
         const compact = document.createElement('div');
         compact.className = 'compact';
-        compact.innerHTML = `
-          <strong>やったこと:</strong> ${entry.activity.join(', ') || '―'}<br>
+        compact.innerHTML = `<strong>やったこと:</strong> ${entry.activity.join(', ') || '―'}<br>
           <strong>気分:</strong> ${entry.mood}　<strong>疲労:</strong> ${entry.fatigue}<br>
-          <strong>メモ:</strong> ${entry.free || '―'}
-        `;
+          <strong>メモ:</strong> ${entry.free || '―'}`;
 
         const content = document.createElement('div');
         content.className = entry.folded ? 'hour-content hidden' : 'hour-content';
@@ -213,12 +208,10 @@
         tags.forEach(tag => {
           const tagItem = document.createElement('div');
           tagItem.className = 'tag-item';
-
           const chk = document.createElement('input');
           chk.type = 'checkbox';
           chk.value = tag;
           chk.checked = entry.activity.includes(tag);
-
           chk.addEventListener('change', () => {
             if (chk.checked) {
               if (tag === "睡眠") {
@@ -233,7 +226,6 @@
               entry.activity = entry.activity.filter(t => t !== tag);
             }
           });
-
           tagItem.appendChild(chk);
           tagItem.appendChild(document.createTextNode(tag));
           ckGrid.appendChild(tagItem);
@@ -246,7 +238,6 @@
 
         const row = document.createElement('div');
         row.className = 'flex-row';
-
         const moodLabel = document.createElement('label');
         moodLabel.textContent = "気分:";
         const selMood = document.createElement('select');
@@ -301,7 +292,7 @@
 
     const dp = document.getElementById("recordDate");
     dp.value = new Date().toISOString().split("T")[0];
-    dp.onchange = render;
+    dp.addEventListener("change", render);
     render();
   </script>
 </body>
