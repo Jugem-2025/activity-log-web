@@ -197,6 +197,7 @@
 
         const ckGrid = document.createElement('div');
         ckGrid.className = 'checkbox-grid';
+
         tags.forEach(tag => {
           const tagItem = document.createElement('div');
           tagItem.className = 'tag-item';
@@ -205,12 +206,13 @@
           chk.type = 'checkbox';
           chk.value = tag;
           chk.checked = entry.activity.includes(tag);
+
           chk.addEventListener('change', () => {
             if (chk.checked) {
               if (tag === "睡眠") {
                 entry.activity = ["睡眠"];
-                entry.mood = '';
-                entry.fatigue = '';
+                entry.mood = 0;
+                entry.fatigue = 0;
               } else {
                 entry.activity = entry.activity.filter(t => t !== "睡眠" && t !== tag);
                 entry.activity.push(tag);
@@ -218,6 +220,7 @@
             } else {
               entry.activity = entry.activity.filter(t => t !== tag);
             }
+            render();  // 状態を反映
           });
 
           tagItem.appendChild(chk);
@@ -256,8 +259,8 @@
         row.append(moodLabel, selMood, fatigueLabel, selFat);
         content.append(ckGrid, freeTxt, row);
         header.querySelector("button").addEventListener("click", () => {
-          entry.mood = entry.activity.includes("睡眠") ? '' : parseInt(selMood.value);
-          entry.fatigue = entry.activity.includes("睡眠") ? '' : parseInt(selFat.value);
+          entry.mood = entry.activity.includes("睡眠") ? 0 : parseInt(selMood.value);
+          entry.fatigue = entry.activity.includes("睡眠") ? 0 : parseInt(selFat.value);
           entry.free = freeTxt.value;
           entry.folded = true;
           data[key] = entry;
