@@ -7,7 +7,7 @@
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
-      max-width: 900px;
+      max-width: 800px;
       margin: auto;
       background: #f5f6fa;
       color: #333;
@@ -81,9 +81,11 @@
       padding: 4px 8px;
       border-radius: 4px;
       font-size: 0.95em;
+      cursor: pointer;
     }
     .tag-item input[type="checkbox"] {
       margin-right: 4px;
+      pointer-events: auto;
     }
     .flex-row {
       display: flex;
@@ -126,6 +128,9 @@
       margin-bottom: 6px;
       font-weight: bold;
     }
+    .daily-note input[type="checkbox"] {
+      margin-right: 6px;
+    }
     .daily-note textarea {
       width: 100%;
       padding: 8px;
@@ -143,10 +148,8 @@
       <a href="tags.html" title="タグ編集">⚙️</a>
     </div>
   </header>
-
   <input type="date" id="recordDate" class="date-picker" />
   <div id="recordArea"></div>
-
   <div class="daily-note">
     <label><input type="checkbox" id="alcohol"> アルコール</label>
     <label><input type="checkbox" id="caffeine"> カフェイン</label>
@@ -158,8 +161,8 @@
 
   <script>
     const defaultTags = ["起床", "シャワー・風呂", "朝食", "昼食", "夕食", "外出", "移動", "個人課題", "講義", "帰宅", "家事", "休憩", "就寝", "薬", "睡眠"];
-    const tags = JSON.parse(localStorage.getItem("tags") || "null") || defaultTags;
-    const moods = Array.from({ length: 21 }, (_, i) => i * 5);
+    const tags = JSON.parse(localStorage.getItem("tags") || JSON.stringify(defaultTags));
+    const moods = Array.from({length: 21}, (_, i) => i * 5);
     const recordArea = document.getElementById("recordArea");
 
     function render() {
@@ -167,47 +170,39 @@
       const data = JSON.parse(localStorage.getItem(dateStr) || '{}');
       recordArea.innerHTML = '';
 
-      document.getElementById("alcohol").checked = data.dailyNote?.alcohol || false;
-      document.getElementById("caffeine").checked = data.dailyNote?.caffeine || false;
-      document.getElementById("intakeMemo").value = data.dailyNote?.intakeMemo || '';
-      document.getElementById("dailyMemo").value = data.dailyNote?.memo || '';
-
       for (let i = 0; i < 24; i++) {
         const hour = (i + 4) % 24;
         const key = hour.toString().padStart(2, '0');
         const entry = data[key] || { activity: [], mood: 50, fatigue: 50, free: '', folded: false };
 
-        const block = document.createElement('div');
-        block.className = 'hour-block';
+        const block = document.createElement("div");
+        block.className = "hour-block";
 
-        const header = document.createElement('div');
-        header.className = 'hour-header';
-        header.innerHTML = `<div>${key}:00</div><button class="save-btn">保存する</button>`;
+        const header = document.createElement("div");
+        header.className = "hour-header";
+        header.innerHTML = `<div>${key}:00</div>`;
 
-        const compact = document.createElement('div');
-        compact.className = 'compact';
-        compact.innerHTML = `
-          <strong>やったこと:</strong> ${entry.activity.join(', ') || '―'}<br>
-          <strong>気分:</strong> ${entry.mood}　<strong>疲労:</strong> ${entry.fatigue}<br>
-          <strong>メモ:</strong> ${entry.free || '―'}
-        `;
+        const saveBtn = document.createElement("button");
+        saveBtn.textContent = "保存する";
+        saveBtn.className = "save-btn";
 
-        const content = document.createElement('div');
-        content.className = entry.folded ? 'hour-content hidden' : 'hour-content';
+        const compact = document.createElement("div");
+        compact.className = "compact";
 
-        const ckGrid = document.createElement('div');
-        ckGrid.className = 'checkbox-grid';
+        const content = document.createElement("div");
+        content.className = entry.folded ? "hour-content hidden" : "hour-content";
+
+        const ckGrid = document.createElement("div");
+        ckGrid.className = "checkbox-grid";
 
         tags.forEach(tag => {
-          const tagItem = document.createElement('div');
-          tagItem.className = 'tag-item';
-
-          const chk = document.createElement('input');
-          chk.type = 'checkbox';
+          const tagItem = document.createElement("div");
+          tagItem.className = "tag-item";
+          const chk = document.createElement("input");
+          chk.type = "checkbox";
           chk.value = tag;
           chk.checked = entry.activity.includes(tag);
-
-          chk.addEventListener('change', () => {
+          chk.addEventListener("change", () => {
             if (chk.checked) {
               if (tag === "睡眠") {
                 entry.activity = ["睡眠"];
@@ -220,75 +215,90 @@
             } else {
               entry.activity = entry.activity.filter(t => t !== tag);
             }
-            render();  // 状態を反映
           });
-
           tagItem.appendChild(chk);
           tagItem.appendChild(document.createTextNode(tag));
           ckGrid.appendChild(tagItem);
         });
 
-        const freeTxt = document.createElement('input');
-        freeTxt.type = 'text';
-        freeTxt.placeholder = '自由記入';
+        const freeTxt = document.createElement("input");
+        freeTxt.type = "text";
+        freeTxt.placeholder = "自由記入";
         freeTxt.value = entry.free;
 
-        const row = document.createElement('div');
-        row.className = 'flex-row';
+        const row = document.createElement("div");
+        row.className = "flex-row";
+        const moodSel = document.createElement("select");
+        const fatSel = document.createElement("select");
 
-        const moodLabel = document.createElement('label');
-        moodLabel.textContent = "気分:";
-        const selMood = document.createElement('select');
-        moods.forEach(m => {
-          const o = document.createElement('option');
-          o.value = o.textContent = m;
-          if (m === entry.mood) o.selected = true;
-          selMood.appendChild(o);
+        moods.forEach(n => {
+          const m = document.createElement("option");
+          m.value = m.textContent = n;
+          if (n === entry.mood) m.selected = true;
+          moodSel.appendChild(m);
+          const f = document.createElement("option");
+          f.value = f.textContent = n;
+          if (n === entry.fatigue) f.selected = true;
+          fatSel.appendChild(f);
         });
 
-        const fatigueLabel = document.createElement('label');
-        fatigueLabel.textContent = "疲労度:";
-        const selFat = document.createElement('select');
-        moods.forEach(f => {
-          const o = document.createElement('option');
-          o.value = o.textContent = f;
-          if (f === entry.fatigue) o.selected = true;
-          selFat.appendChild(o);
-        });
+        row.innerHTML = `<label>気分:</label>`;
+        row.appendChild(moodSel);
+        row.innerHTML += `<label>疲労度:</label>`;
+        row.appendChild(fatSel);
 
-        row.append(moodLabel, selMood, fatigueLabel, selFat);
-        content.append(ckGrid, freeTxt, row);
-        header.querySelector("button").addEventListener("click", () => {
-          entry.mood = entry.activity.includes("睡眠") ? 0 : parseInt(selMood.value);
-          entry.fatigue = entry.activity.includes("睡眠") ? 0 : parseInt(selFat.value);
+        content.appendChild(ckGrid);
+        content.appendChild(freeTxt);
+        content.appendChild(row);
+        content.appendChild(saveBtn);
+
+        header.appendChild(saveBtn);
+        block.appendChild(header);
+        block.appendChild(compact);
+        block.appendChild(content);
+        recordArea.appendChild(block);
+
+        compact.innerHTML = `
+          <strong>やったこと:</strong> ${entry.activity.join(', ') || '―'}<br>
+          <strong>気分:</strong> ${entry.mood ?? '―'}　<strong>疲労度:</strong> ${entry.fatigue ?? '―'}<br>
+          <strong>メモ:</strong> ${entry.free || '―'}
+        `;
+        compact.style.display = entry.folded ? 'block' : 'none';
+
+        header.onclick = () => {
+          entry.folded = !entry.folded;
+          data[key] = entry;
+          localStorage.setItem(dateStr, JSON.stringify(data));
+          render();
+        };
+
+        saveBtn.onclick = () => {
           entry.free = freeTxt.value;
+          entry.mood = entry.activity.includes("睡眠") ? 0 : parseInt(moodSel.value);
+          entry.fatigue = entry.activity.includes("睡眠") ? 0 : parseInt(fatSel.value);
           entry.folded = true;
           data[key] = entry;
           data.dailyNote = {
             alcohol: document.getElementById("alcohol").checked,
             caffeine: document.getElementById("caffeine").checked,
-            intakeMemo: document.getElementById("intakeMemo").value,
+            intake: document.getElementById("intakeMemo").value,
             memo: document.getElementById("dailyMemo").value
           };
           localStorage.setItem(dateStr, JSON.stringify(data));
           render();
-        });
-
-        header.addEventListener("click", () => {
-          entry.folded = !entry.folded;
-          data[key] = entry;
-          localStorage.setItem(dateStr, JSON.stringify(data));
-          render();
-        });
-
-        compact.style.display = entry.folded ? 'block' : 'none';
-        block.append(header, compact, content);
-        recordArea.append(block);
+        };
       }
+
+      const dateData = data.dailyNote || {};
+      document.getElementById("alcohol").checked = dateData.alcohol || false;
+      document.getElementById("caffeine").checked = dateData.caffeine || false;
+      document.getElementById("intakeMemo").value = dateData.intake || '';
+      document.getElementById("dailyMemo").value = dateData.memo || '';
     }
 
-    document.getElementById("recordDate").value = new Date().toISOString().split("T")[0];
-    document.getElementById("recordDate").addEventListener("change", render);
+    const dp = document.getElementById("recordDate");
+    dp.value = new Date().toISOString().split("T")[0];
+    dp.addEventListener("change", render);
     render();
   </script>
 </body>
