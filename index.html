@@ -215,6 +215,7 @@
             } else {
               entry.activity = entry.activity.filter(t => t !== tag);
             }
+            render();  // 再描画してUI反映
           });
           tagItem.appendChild(chk);
           tagItem.appendChild(document.createTextNode(tag));
