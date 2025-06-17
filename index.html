@@ -81,7 +81,6 @@
       padding: 4px 8px;
       border-radius: 4px;
       font-size: 0.95em;
-      cursor: pointer;
     }
     .tag-item input[type="checkbox"] {
       margin-right: 4px;
@@ -148,8 +147,10 @@
       <a href="tags.html" title="タグ編集">⚙️</a>
     </div>
   </header>
+
   <input type="date" id="recordDate" class="date-picker" />
   <div id="recordArea"></div>
+
   <div class="daily-note">
     <label><input type="checkbox" id="alcohol"> アルコール</label>
     <label><input type="checkbox" id="caffeine"> カフェイン</label>
@@ -182,10 +183,6 @@
         header.className = "hour-header";
         header.innerHTML = `<div>${key}:00</div>`;
 
-        const saveBtn = document.createElement("button");
-        saveBtn.textContent = "保存する";
-        saveBtn.className = "save-btn";
-
         const compact = document.createElement("div");
         compact.className = "compact";
 
@@ -209,13 +206,12 @@
                 entry.mood = 0;
                 entry.fatigue = 0;
               } else {
-                entry.activity = entry.activity.filter(t => t !== "睡眠" && t !== tag);
+                entry.activity = entry.activity.filter(t => t !== "睡眠");
                 entry.activity.push(tag);
               }
             } else {
               entry.activity = entry.activity.filter(t => t !== tag);
             }
-            render();  // 再描画してUI反映
           });
           tagItem.appendChild(chk);
           tagItem.appendChild(document.createTextNode(tag));
@@ -248,31 +244,9 @@
         row.innerHTML += `<label>疲労度:</label>`;
         row.appendChild(fatSel);
 
-        content.appendChild(ckGrid);
-        content.appendChild(freeTxt);
-        content.appendChild(row);
-        content.appendChild(saveBtn);
-
-        header.appendChild(saveBtn);
-        block.appendChild(header);
-        block.appendChild(compact);
-        block.appendChild(content);
-        recordArea.appendChild(block);
-
-        compact.innerHTML = `
-          <strong>やったこと:</strong> ${entry.activity.join(', ') || '―'}<br>
-          <strong>気分:</strong> ${entry.mood ?? '―'}　<strong>疲労度:</strong> ${entry.fatigue ?? '―'}<br>
-          <strong>メモ:</strong> ${entry.free || '―'}
-        `;
-        compact.style.display = entry.folded ? 'block' : 'none';
-
-        header.onclick = () => {
-          entry.folded = !entry.folded;
-          data[key] = entry;
-          localStorage.setItem(dateStr, JSON.stringify(data));
-          render();
-        };
-
+        const saveBtn = document.createElement("button");
+        saveBtn.textContent = "保存する";
+        saveBtn.className = "save-btn";
         saveBtn.onclick = () => {
           entry.free = freeTxt.value;
           entry.mood = entry.activity.includes("睡眠") ? 0 : parseInt(moodSel.value);
@@ -288,13 +262,38 @@
           localStorage.setItem(dateStr, JSON.stringify(data));
           render();
         };
+
+        content.appendChild(ckGrid);
+        content.appendChild(freeTxt);
+        content.appendChild(row);
+        content.appendChild(saveBtn);
+
+        compact.innerHTML = `
+          <strong>やったこと:</strong> ${entry.activity.join(', ') || '―'}<br>
+          <strong>気分:</strong> ${entry.mood ?? '―'}　<strong>疲労度:</strong> ${entry.fatigue ?? '―'}<br>
+          <strong>メモ:</strong> ${entry.free || '―'}
+        `;
+        compact.style.display = entry.folded ? 'block' : 'none';
+
+        header.onclick = () => {
+          entry.folded = !entry.folded;
+          data[key] = entry;
+          localStorage.setItem(dateStr, JSON.stringify(data));
+          render();
+        };
+
+        header.appendChild(saveBtn);
+        block.appendChild(header);
+        block.appendChild(compact);
+        block.appendChild(content);
+        recordArea.appendChild(block);
       }
 
-      const dateData = data.dailyNote || {};
-      document.getElementById("alcohol").checked = dateData.alcohol || false;
-      document.getElementById("caffeine").checked = dateData.caffeine || false;
-      document.getElementById("intakeMemo").value = dateData.intake || '';
-      document.getElementById("dailyMemo").value = dateData.memo || '';
+      const note = data.dailyNote || {};
+      document.getElementById("alcohol").checked = note.alcohol || false;
+      document.getElementById("caffeine").checked = note.caffeine || false;
+      document.getElementById("intakeMemo").value = note.intake || '';
+      document.getElementById("dailyMemo").value = note.memo || '';
     }
 
     const dp = document.getElementById("recordDate");
