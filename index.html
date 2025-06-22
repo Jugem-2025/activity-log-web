@@ -4,19 +4,45 @@
   <meta charset="UTF-8" />
   <title>活動記録</title>
   <style>
-    body { font-family: sans-serif; background: #f7f9fb; margin: 0; padding: 0; }
-    header { background: #4a90e2; color: white; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
+    body { font-family: sans-serif; margin: 0; background: #f7f9fb; }
+    header {
+      background: #4a90e2; color: white;
+      padding: 10px; display: flex; justify-content: space-between; align-items: center;
+    }
     header h1 { margin: 0; font-size: 20px; }
     header a { color: white; font-size: 20px; margin-left: 10px; text-decoration: none; }
-    .container { padding: 10px; max-width: 800px; margin: auto; }
-    .time-block { border: 1px solid #ccc; background: #fff; margin-bottom: 10px; }
+    .container { padding: 10px; max-width: 900px; margin: auto; }
+
+    .time-block { border: 1px solid #ccc; background: #fff; margin-bottom: 8px; border-radius: 4px; }
     .time-block header { background: #eee; padding: 5px; font-weight: bold; cursor: pointer; }
-    .content { padding: 5px; display: none; }
-    .compact { padding: 5px; background: #f0f0f0; font-size: 14px; }
-    .daily-note { background: #fff; padding: 10px; margin-top: 20px; border-top: 3px solid #4a90e2; }
+
+    .content { padding: 5px; display: none; font-size: 14px; }
+    .compact { padding: 5px; background: #f0f0f0; font-size: 13px; }
+
     label { margin-right: 8px; display: inline-block; }
-    select, input[type="text"], textarea { margin-top: 5px; margin-bottom: 8px; width: 100%; }
-    .btn-save { background: #4a90e2; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; }
+
+    select, input[type="text"] {
+      font-size: 13px;
+      margin: 4px 4px 6px 0;
+      padding: 2px;
+    }
+
+    .mood-fatigue-container {
+      display: flex; gap: 10px; margin: 4px 0;
+    }
+
+    .daily-note {
+      background: #fff; padding: 10px;
+      margin-top: 20px; border-top: 3px solid #4a90e2; border-radius: 4px;
+    }
+
+    .btn-save {
+      background: #4a90e2; color: white;
+      padding: 8px 16px; border: none;
+      border-radius: 4px; cursor: pointer; margin-top: 10px;
+    }
+
+    textarea { width: 100%; font-size: 13px; margin-top: 6px; }
     .disabled { background-color: #eee; pointer-events: none; }
   </style>
 </head>
@@ -28,13 +54,14 @@
       <a href="tags.html">⚙️</a>
     </div>
   </header>
+
   <div class="container">
     <input type="date" id="datePicker"><br><br>
     <div id="timeBlocks"></div>
     <button class="btn-save" id="saveAll">保存する</button>
 
     <div class="daily-note">
-      <h2>日毎の記録</h2>
+      <h2>日毎のまとめ</h2>
       <label><input type="checkbox" id="alcoholCheckbox"> アルコール</label>
       <label><input type="checkbox" id="caffeineCheckbox"> カフェイン</label><br>
       <textarea id="dailyFree" placeholder="摂取内容（自由記入）"></textarea>
@@ -43,17 +70,22 @@
   </div>
 
   <script>
-    const tagList = JSON.parse(localStorage.getItem("tagList")) || ["起床", "朝食", "移動", "講義", "睡眠"];
+    const tagList = [
+      "起床", "シャワー・風呂", "朝食", "昼食", "夕食", "外出", "移動",
+      "個別課題", "講義", "帰宅", "家事", "休憩", "就寝", "薬", "睡眠"
+    ];
     let currentDate = null;
     let dailyData = {};
-
-    document.addEventListener("DOMContentLoaded", () => {
+        document.addEventListener("DOMContentLoaded", () => {
       const today = new Date().toISOString().slice(0, 10);
       document.getElementById("datePicker").value = today;
       document.getElementById("datePicker").addEventListener("change", render);
       document.getElementById("saveAll").addEventListener("click", () => {
-        saveAll();
-        foldAll();
+        for (let h in dailyData.blocks) {
+          dailyData.blocks[h].folded = true;
+        }
+        saveData();
+        render();
       });
       render();
     });
@@ -90,41 +122,43 @@
         header.textContent = `${hour}:00`;
         header.addEventListener("click", () => {
           block.folded = !block.folded;
-          updateCompactView(div, hour, block);
           saveData();
+          render();
         });
 
         const content = document.createElement("div");
         content.className = "content";
 
-        // タグ
-        const tagHTML = tagList.map(tag => 
+        content.innerHTML += tagList.map(tag =>
           `<label><input type="checkbox" class="act" value="${tag}" ${block.activity.includes(tag) ? "checked" : ""}>${tag}</label>`
         ).join(" ");
-        content.innerHTML = tagHTML;
 
-        // 気分・疲労度
         const isSleep = block.activity.includes("睡眠");
         const disabled = isSleep ? "disabled class='disabled'" : "";
 
         content.innerHTML += `
-          <select class="mood" ${disabled}>
-            <option value="">気分</option>
-            ${[...Array(101).keys()].map(i => `<option value="${i}" ${block.mood == i ? "selected" : ""}>${i}</option>`).join("")}
-          </select>
-          <select class="fatigue" ${disabled}>
-            <option value="">疲労度</option>
-            ${[...Array(101).keys()].map(i => `<option value="${i}" ${block.fatigue == i ? "selected" : ""}>${i}</option>`).join("")}
-          </select>
+          <div class="mood-fatigue-container">
+            <select class="mood" ${disabled}>
+              <option value="">気分</option>
+              ${[...Array(21).keys()].map(i => i * 5).map(v =>
+                `<option value="${v}" ${block.mood == v ? "selected" : ""}>${v}</option>`).join("")}
+            </select>
+            <select class="fatigue" ${disabled}>
+              <option value="">疲労度</option>
+              ${[...Array(21).keys()].map(i => i * 5).map(v =>
+                `<option value="${v}" ${block.fatigue == v ? "selected" : ""}>${v}</option>`).join("")}
+            </select>
+          </div>
           <input type="text" class="free" placeholder="自由記入" value="${block.free}">
         `;
 
         div.appendChild(header);
         div.appendChild(content);
         container.appendChild(div);
+
         updateCompactView(div, hour, block);
 
-        // イベントバインド
+        // イベント処理
         content.querySelectorAll(".act").forEach(c => c.addEventListener("change", () => {
           const checked = Array.from(content.querySelectorAll(".act:checked")).map(x => x.value);
           if (checked.includes("睡眠")) {
@@ -134,22 +168,26 @@
           } else {
             block.activity = checked;
           }
-          render(); // 再描画でスライダー更新
+          saveData();
+          render();
         }));
 
         content.querySelector(".mood").addEventListener("change", e => {
           block.mood = e.target.value ? +e.target.value : null;
           prevMood = block.mood ?? prevMood;
+          saveData();
         });
         content.querySelector(".fatigue").addEventListener("change", e => {
           block.fatigue = e.target.value ? +e.target.value : null;
           prevFatigue = block.fatigue ?? prevFatigue;
+          saveData();
         });
         content.querySelector(".free").addEventListener("input", e => {
           block.free = e.target.value;
+          saveData();
         });
 
-        // 初期値補完
+        // 初期値自動コピー
         if (block.mood == null) block.mood = prevMood;
         if (block.fatigue == null) block.fatigue = prevFatigue;
       }
@@ -158,16 +196,16 @@
     function updateCompactView(div, hour, block) {
       const content = div.querySelector(".content");
       const compact = div.querySelector(".compact");
+      if (compact) compact.remove();
+
       if (block.folded || !isEntryDefault(block)) {
         content.style.display = "none";
-        if (compact) compact.remove();
-        const c = document.createElement("div");
-        c.className = "compact";
-        c.textContent = `${hour}:00 - ${block.activity.join(",")} 気:${block.mood ?? ""} 疲:${block.fatigue ?? ""} ${block.free}`;
-        div.appendChild(c);
+        const summary = document.createElement("div");
+        summary.className = "compact";
+        summary.textContent = `${hour}:00 - ${block.activity.join(",") || "―"} 気:${block.mood ?? ""} 疲:${block.fatigue ?? ""} ${block.free}`;
+        div.appendChild(summary);
       } else {
         content.style.display = "block";
-        if (compact) compact.remove();
       }
     }
 
@@ -177,17 +215,6 @@
 
     function saveData() {
       localStorage.setItem(currentDate, JSON.stringify(dailyData));
-    }
-
-    function saveAll() {
-      for (let h in dailyData.blocks) {
-        dailyData.blocks[h].folded = true;
-      }
-      saveData();
-    }
-
-    function foldAll() {
-      document.querySelectorAll(".time-block header").forEach(h => h.click());
     }
 
     function renderDailyNote() {
