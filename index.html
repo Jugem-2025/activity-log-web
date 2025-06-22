@@ -1,23 +1,23 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>活動記録</title>
   <style>
-    body { font-family: sans-serif; margin: 0; padding: 0; background: #f5f6fa; }
+    body { font-family: sans-serif; background: #f7f9fb; margin: 0; padding: 0; }
     header { background: #4a90e2; color: white; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
     header h1 { margin: 0; font-size: 20px; }
-    header a { color: white; margin-left: 10px; text-decoration: none; font-size: 20px; }
-    .container { padding: 10px; }
-    .time-block { border: 1px solid #ccc; padding: 5px; margin-bottom: 5px; background: white; }
-    .time-block header { cursor: pointer; background: #eee; padding: 5px; font-weight: bold; }
-    .time-block .content { display: none; padding: 5px; }
-    .compact { background: #f0f0f0; padding: 5px; font-size: 14px; }
-    .daily-note { border-top: 2px solid #4a90e2; padding-top: 10px; margin-top: 10px; background: #ffffff; }
-    .btn-save { margin-top: 10px; padding: 5px 10px; background: #4a90e2; color: white; border: none; border-radius: 4px; }
-    select, input[type="text"], textarea { margin: 4px 0; width: 100%; }
-    .disabled { background: #eee; }
-    label { margin-right: 10px; }
+    header a { color: white; font-size: 20px; margin-left: 10px; text-decoration: none; }
+    .container { padding: 10px; max-width: 800px; margin: auto; }
+    .time-block { border: 1px solid #ccc; background: #fff; margin-bottom: 10px; }
+    .time-block header { background: #eee; padding: 5px; font-weight: bold; cursor: pointer; }
+    .content { padding: 5px; display: none; }
+    .compact { padding: 5px; background: #f0f0f0; font-size: 14px; }
+    .daily-note { background: #fff; padding: 10px; margin-top: 20px; border-top: 3px solid #4a90e2; }
+    label { margin-right: 8px; display: inline-block; }
+    select, input[type="text"], textarea { margin-top: 5px; margin-bottom: 8px; width: 100%; }
+    .btn-save { background: #4a90e2; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; }
+    .disabled { background-color: #eee; pointer-events: none; }
   </style>
 </head>
 <body>
@@ -29,188 +29,178 @@
     </div>
   </header>
   <div class="container">
-    <input type="date" id="datePicker">
+    <input type="date" id="datePicker"><br><br>
     <div id="timeBlocks"></div>
     <button class="btn-save" id="saveAll">保存する</button>
+
     <div class="daily-note">
-      <h2>Daily Note</h2>
-      <label><input type="checkbox" id="caffeineCheckbox"> カフェイン</label>
-      <label><input type="checkbox" id="alcoholCheckbox"> アルコール</label><br>
-      <textarea id="dailyFree" placeholder="摂取内容など"></textarea><br>
-      <textarea id="dailyMemo" placeholder="その他備考"></textarea>
+      <h2>日毎の記録</h2>
+      <label><input type="checkbox" id="alcoholCheckbox"> アルコール</label>
+      <label><input type="checkbox" id="caffeineCheckbox"> カフェイン</label><br>
+      <textarea id="dailyFree" placeholder="摂取内容（自由記入）"></textarea>
+      <textarea id="dailyMemo" placeholder="その他の備考"></textarea>
     </div>
   </div>
 
   <script>
-    let tagList = JSON.parse(localStorage.getItem('tagList')) || ['起床','朝食','移動','講義','睡眠'];
+    const tagList = JSON.parse(localStorage.getItem("tagList")) || ["起床", "朝食", "移動", "講義", "睡眠"];
     let currentDate = null;
     let dailyData = {};
 
-    window.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('datePicker').value = new Date().toISOString().slice(0,10);
-      document.getElementById('datePicker').addEventListener('change', render);
-      document.getElementById('saveAll').addEventListener('click', () => {
-        saveAllBlocks();
+    document.addEventListener("DOMContentLoaded", () => {
+      const today = new Date().toISOString().slice(0, 10);
+      document.getElementById("datePicker").value = today;
+      document.getElementById("datePicker").addEventListener("change", render);
+      document.getElementById("saveAll").addEventListener("click", () => {
+        saveAll();
         foldAll();
-        saveDailyNote();
       });
       render();
     });
 
-    function loadData(date) {
-      let data = JSON.parse(localStorage.getItem(date));
-      if (!data) {
-        data = { blocks: {}, dailyNote: { alcohol: false, caffeine: false, free: '', memo: '' } };
-        for (let h = 4; h !== 4 || Object.keys(data.blocks).length === 0; h = (h + 1) % 24) {
-          let key = String(h).padStart(2, '0');
-          data.blocks[key] = { activity: [], mood: null, fatigue: null, free: '', folded: false };
-        }
-      }
-      return data;
-    }
-
     function render() {
-      currentDate = document.getElementById('datePicker').value;
+      currentDate = document.getElementById("datePicker").value;
       dailyData = loadData(currentDate);
       renderBlocks();
       renderDailyNote();
     }
 
+    function loadData(date) {
+      let data = JSON.parse(localStorage.getItem(date));
+      if (!data) {
+        data = { blocks: {}, dailyNote: { alcohol: false, caffeine: false, free: "", memo: "" } };
+        for (let h = 4; h !== 4 || Object.keys(data.blocks).length === 0; h = (h + 1) % 24) {
+          const hour = String(h).padStart(2, "0");
+          data.blocks[hour] = { activity: [], mood: null, fatigue: null, free: "", folded: false };
+        }
+      }
+      return data;
+    }
+
     function renderBlocks() {
-      const container = document.getElementById('timeBlocks');
-      container.innerHTML = '';
-      Object.entries(dailyData.blocks).forEach(([hour, block]) => {
-        const div = document.createElement('div');
-        div.className = 'time-block';
-        const hdr = document.createElement('header');
-        hdr.textContent = hour + ':00';
-        hdr.addEventListener('click', () => {
+      const container = document.getElementById("timeBlocks");
+      container.innerHTML = "";
+      let prevMood = 50, prevFatigue = 50;
+
+      for (const [hour, block] of Object.entries(dailyData.blocks)) {
+        const div = document.createElement("div");
+        div.className = "time-block";
+
+        const header = document.createElement("header");
+        header.textContent = `${hour}:00`;
+        header.addEventListener("click", () => {
           block.folded = !block.folded;
           updateCompactView(div, hour, block);
-          saveBlock(hour);
+          saveData();
         });
-        const content = document.createElement('div');
-        content.className = 'content';
-        content.innerHTML = generateBlockInner(hour, block);
-        bindBlockEvents(div, hour, block);
-        div.append(hdr, content);
-        container.append(div);
+
+        const content = document.createElement("div");
+        content.className = "content";
+
+        // タグ
+        const tagHTML = tagList.map(tag => 
+          `<label><input type="checkbox" class="act" value="${tag}" ${block.activity.includes(tag) ? "checked" : ""}>${tag}</label>`
+        ).join(" ");
+        content.innerHTML = tagHTML;
+
+        // 気分・疲労度
+        const isSleep = block.activity.includes("睡眠");
+        const disabled = isSleep ? "disabled class='disabled'" : "";
+
+        content.innerHTML += `
+          <select class="mood" ${disabled}>
+            <option value="">気分</option>
+            ${[...Array(101).keys()].map(i => `<option value="${i}" ${block.mood == i ? "selected" : ""}>${i}</option>`).join("")}
+          </select>
+          <select class="fatigue" ${disabled}>
+            <option value="">疲労度</option>
+            ${[...Array(101).keys()].map(i => `<option value="${i}" ${block.fatigue == i ? "selected" : ""}>${i}</option>`).join("")}
+          </select>
+          <input type="text" class="free" placeholder="自由記入" value="${block.free}">
+        `;
+
+        div.appendChild(header);
+        div.appendChild(content);
+        container.appendChild(div);
         updateCompactView(div, hour, block);
-      });
-    }
 
-    function generateBlockInner(hour, block) {
-      let html = '';
-      html += tagList.map(tag => {
-        const checked = block.activity.includes(tag) ? 'checked' : '';
-        return `<label><input type="checkbox" class="act" value="${tag}" ${checked}>${tag}</label>`;
-      }).join('');
-      const disabled = block.activity.includes('睡眠') ? 'disabled class="disabled"' : '';
-      const mood = block.mood != null ? block.mood : '';
-      const fat = block.fatigue != null ? block.fatigue : '';
-      html += `<select class="mood" ${disabled}><option value="">気分</option>` +
-        Array.from({ length: 101 }, (_, i) => `<option value="${i}" ${mood == i ? 'selected' : ''}>${i}</option>`).join('') +
-        `</select>`;
-      html += `<select class="fatigue" ${disabled}><option value="">疲労</option>` +
-        Array.from({ length: 101 }, (_, i) => `<option value="${i}" ${fat == i ? 'selected' : ''}>${i}</option>`).join('') +
-        `</select>`;
-      html += `<input type="text" class="free" placeholder="メモ" value="${block.free}">`;
-      return html;
-    }
-
-    function bindBlockEvents(div, hour, block) {
-      const cont = div.querySelector('.content');
-      cont.querySelectorAll('.act').forEach(chk => {
-        chk.addEventListener('change', e => {
-          if (e.target.value === '睡眠' && e.target.checked) {
-            cont.querySelectorAll('.act').forEach(c => { if (c.value !== '睡眠') c.checked = false; });
-            cont.querySelector('.mood').value = '';
-            cont.querySelector('.fatigue').value = '';
-            cont.querySelector('.mood').disabled = true;
-            cont.querySelector('.fatigue').disabled = true;
-            block.activity = ['睡眠'];
+        // イベントバインド
+        content.querySelectorAll(".act").forEach(c => c.addEventListener("change", () => {
+          const checked = Array.from(content.querySelectorAll(".act:checked")).map(x => x.value);
+          if (checked.includes("睡眠")) {
+            block.activity = ["睡眠"];
+            block.mood = null;
+            block.fatigue = null;
           } else {
-            block.activity = Array.from(cont.querySelectorAll('.act:checked')).map(c => c.value);
-            if (!block.activity.includes('睡眠')) {
-              cont.querySelector('.mood').disabled = false;
-              cont.querySelector('.fatigue').disabled = false;
-            }
+            block.activity = checked;
           }
-          saveBlock(hour);
-          updateCompactView(div, hour, block);
+          render(); // 再描画でスライダー更新
+        }));
+
+        content.querySelector(".mood").addEventListener("change", e => {
+          block.mood = e.target.value ? +e.target.value : null;
+          prevMood = block.mood ?? prevMood;
         });
-      });
-      cont.querySelector('.mood').addEventListener('change', e => {
-        block.mood = e.target.value !== '' ? +e.target.value : null;
-        saveBlock(hour);
-        updateCompactView(div, hour, block);
-      });
-      cont.querySelector('.fatigue').addEventListener('change', e => {
-        block.fatigue = e.target.value !== '' ? +e.target.value : null;
-        saveBlock(hour);
-        updateCompactView(div, hour, block);
-      });
-      cont.querySelector('.free').addEventListener('input', e => {
-        block.free = e.target.value;
-        saveBlock(hour);
-      });
+        content.querySelector(".fatigue").addEventListener("change", e => {
+          block.fatigue = e.target.value ? +e.target.value : null;
+          prevFatigue = block.fatigue ?? prevFatigue;
+        });
+        content.querySelector(".free").addEventListener("input", e => {
+          block.free = e.target.value;
+        });
+
+        // 初期値補完
+        if (block.mood == null) block.mood = prevMood;
+        if (block.fatigue == null) block.fatigue = prevFatigue;
+      }
     }
 
     function updateCompactView(div, hour, block) {
-      const cont = div.querySelector('.content');
-      const compact = div.querySelector('.compact');
-      if (!block.folded && isEntryDefault(block)) {
-        cont.style.display = 'block';
+      const content = div.querySelector(".content");
+      const compact = div.querySelector(".compact");
+      if (block.folded || !isEntryDefault(block)) {
+        content.style.display = "none";
         if (compact) compact.remove();
+        const c = document.createElement("div");
+        c.className = "compact";
+        c.textContent = `${hour}:00 - ${block.activity.join(",")} 気:${block.mood ?? ""} 疲:${block.fatigue ?? ""} ${block.free}`;
+        div.appendChild(c);
       } else {
-        cont.style.display = 'none';
+        content.style.display = "block";
         if (compact) compact.remove();
-        const cm = document.createElement('div');
-        cm.className = 'compact';
-        cm.textContent = `${hour}:00 — ${block.activity.join(',') || '―'} ` +
-                         `${block.mood != null ? `気:${block.mood}` : ''} ` +
-                         `${block.fatigue != null ? `疲:${block.fatigue}` : ''} ` +
-                         `${block.free}`;
-        div.append(cm);
       }
     }
 
     function isEntryDefault(b) {
-      return b.activity.length === 0 && b.mood == null && b.fatigue == null && b.free === '';
+      return b.activity.length === 0 && b.mood == null && b.fatigue == null && b.free === "";
     }
 
-    function saveBlock(hour) {
+    function saveData() {
       localStorage.setItem(currentDate, JSON.stringify(dailyData));
     }
 
-    function saveAllBlocks() {
+    function saveAll() {
       for (let h in dailyData.blocks) {
         dailyData.blocks[h].folded = true;
       }
-      saveBlock(null);
+      saveData();
+    }
+
+    function foldAll() {
+      document.querySelectorAll(".time-block header").forEach(h => h.click());
     }
 
     function renderDailyNote() {
       const dn = dailyData.dailyNote;
-      document.getElementById('caffeineCheckbox').checked = dn.caffeine;
-      document.getElementById('alcoholCheckbox').checked = dn.alcohol;
-      document.getElementById('dailyFree').value = dn.free;
-      document.getElementById('dailyMemo').value = dn.memo;
-      document.getElementById('caffeineCheckbox').addEventListener('change', e => { dn.caffeine = e.target.checked; saveBlock(null); });
-      document.getElementById('alcoholCheckbox').addEventListener('change', e => { dn.alcohol = e.target.checked; saveBlock(null); });
-      document.getElementById('dailyFree').addEventListener('input', e => { dn.free = e.target.value; saveBlock(null); });
-      document.getElementById('dailyMemo').addEventListener('input', e => { dn.memo = e.target.value; saveBlock(null); });
-    }
+      document.getElementById("alcoholCheckbox").checked = dn.alcohol;
+      document.getElementById("caffeineCheckbox").checked = dn.caffeine;
+      document.getElementById("dailyFree").value = dn.free;
+      document.getElementById("dailyMemo").value = dn.memo;
 
-    function saveDailyNote() {
-      localStorage.setItem(currentDate, JSON.stringify(dailyData));
-    }
-
-    function foldAll() {
-      document.querySelectorAll('.time-block').forEach(block => {
-        const header = block.querySelector('header');
-        header.click(); // toggle to folded
-      });
+      document.getElementById("alcoholCheckbox").onchange = e => { dn.alcohol = e.target.checked; saveData(); };
+      document.getElementById("caffeineCheckbox").onchange = e => { dn.caffeine = e.target.checked; saveData(); };
+      document.getElementById("dailyFree").oninput = e => { dn.free = e.target.value; saveData(); };
+      document.getElementById("dailyMemo").oninput = e => { dn.memo = e.target.value; saveData(); };
     }
   </script>
 </body>
